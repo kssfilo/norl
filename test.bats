@@ -6,8 +6,20 @@
 	test "$t" == "$r"
 }
 
+@test "-je" {
+	test "$(echo '{"A":"Hello World"}'|dist/cli.js -je 'console.log($_.A)')" == "Hello World"
+}
+
+@test "-Je" {
+	test "$(echo "Hello World"|dist/cli.js -Je '$_={"A":"Norl"}'|tr -d '\t\n ')" == '{"A":"Norl"}'
+}
+
+@test "-Pe" {
+	test "$(echo '{"A":"Hello World"}'|dist/cli.js -Pje '$_=$_.A')" == "Hello World"
+}
+
 @test "-pe" {
-	test "$(echo Hello World|dist/cli.js -pe 'return($_.replace(/World/,"Earth"))')" == "Hello Earth"
+	test "$(echo Hello World|dist/cli.js -pe '$_=$_.replace(/World/,"Earth")')" == "Hello Earth"
 }
 
 @test "-ne" {
@@ -25,7 +37,7 @@
 }
 
 @test "-ane" {
-	r=$(echo -e "Hello World\nGood Night"|dist/cli.js -ane 'console.log($F[1])')
+	r=$(echo -e "Hello,World\nGood,Night"|dist/cli.js -ane 'console.log($F[1])')
 	test "$(echo $r)" == "World Night"
 }
 
@@ -34,7 +46,46 @@
 	test "$(echo $r)" == "Hell G"
 }
 
-@test "-neBE" {
-	test "$(echo -e "Hello World\nGood Night"|dist/cli.js -B '$G.count=0;$G.lines=0;' -ne '$G.lines++;$G.count+=$_.length' -E 'console.log(`counts:${$G.count},lines:${$G.lines}`)')" == "counts:21,lines:2"
+@test "-C ' '" {
+	r=$(echo -e "Hello,World\nGood,Night"|dist/cli.js -C ' ' -ape '$F[1]="Norl"')
+	test "$(echo $r)" == "Hello Norl Good Norl"
 }
 
+@test "-C" {
+	r=$(echo -e "Hello,World\nGood,Night"|dist/cli.js -C -ape '$F[1]="Norl"')
+	test "$(echo $r)" == "Hello,Norl Good,Norl"
+}
+
+@test "-X" {
+	r=$(echo -e "HelloWorld\nGoodNight"|dist/cli.js -Xpe '$_=`echo ${$_}|tr "o" "x"`')
+	test "$(echo $r)" == "HellxWxrld GxxdNight"
+}
+
+
+@test "-neBE" {
+	test "$(echo -e "Hello World\nGood Night"|dist/cli.js -B 'count=0;lines=0;' -ne 'lines++;count+=$_.length' -E 'console.log(`counts:${count},lines:${lines}`)')" == "counts:21,lines:2"
+}
+
+@test "NORL_MODULE/-r" {
+	test "$(NORL_MODULES='mathjs' dist/cli.js -Pre '$_=mathjs.evaluate("1+1")')" == "2"
+}
+
+@test "NORL_MODULE/-rm" {
+	test "$(NORL_MODULES='fs' dist/cli.js -m mathjs -Pre '$_=mathjs.evaluate("1+1")')" == "2"
+}
+
+@test "NORL_MODULE/-rM" {
+	test "$(NORL_MODULES='mathjs' dist/cli.js -M -Pre '$_=typeof mathjs')" == "undefined"
+}
+
+@test "Promise/-Pe" {
+	test "$(echo Hello|dist/cli.js -Pe 'return Promise.resolve($_)')" == "Hello"
+}
+
+@test "Promise/-ne" {
+	test "$(echo -e "Hello\nWorld"|dist/cli.js -Pne 'return Promise.resolve($_)' -E 'return Promise.resolve($_.join(" "))')" == "Hello World"
+}
+
+@test "Promise/-Jne" {
+	test "$(echo -e "Hello\nWorld"|dist/cli.js -Pne 'return Promise.resolve($_)' -E 'return Promise.resolve({a:$_[0],b:$_[1]})')" == "{ a: 'Hello', b: 'World' }"
+}

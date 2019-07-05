@@ -16,36 +16,52 @@ getSep=(sep)=>
 		regex=getSepRegex sep
 	else if sep instanceof RegExp
 		regex=sep
-
+	else if typeof(sep)=='object'
+		regex=sep
 	return(regex)
 
 execfunc=($G,sep,func,$_)=>
+	r=null
 	if sep?
-		func $_.split(sep),$G
+		if (sep instanceof RegExp) or (typeof(sep)=='string')
+			r=func $G,$_,$_.split(sep)
+		else
+			r=func $G,JSON.parse($_)
 	else
-		func $_,$G
+		r=func $G,$_
+	r
 
-exports.e=(sep,func,beginFunc,endFunc)=>
+#jshint evil:true
+finish=(r,thenProgram)=>
+	if typeof r?.then=='function'
+		r.then ($_)=>
+			eval(thenProgram) if thenProgram?
+			process.exit 0
+	else
+		process.exit 0
+
+exports.r=(func,thenProgram)=>
+	$G={}
+	r=execfunc $G,null,func,'' if typeof func=='function'
+	finish r,thenProgram
+
+exports.e=(sep,func,thenProgram)=>
 	unless getSep(sep)
-		endFunc=beginFunc
-		beginFunc=func
+		thenProgram=func
 		func=sep
 		sep=null
 	else
 		sep=getSep(sep)
-
-	$G={}
-	beginFunc $G if typeof beginFunc=='function'
 
 	$_=require('fs').readFileSync('/dev/stdin', 'utf8').toString()
 
-	r=0
+	$G={}
 	r=execfunc $G,sep,func,$_ if typeof func=='function'
-	r=endFunc($G) if typeof endFunc=='function'
-	process.exit r
+	finish r,thenProgram
 
-lineExec=(sep,func,beginFunc,endFunc,cb)=>
+lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 	unless getSep(sep)
+		thenProgram=endFunc
 		endFunc=beginFunc
 		beginFunc=func
 		func=sep
@@ -53,24 +69,32 @@ lineExec=(sep,func,beginFunc,endFunc,cb)=>
 	else
 		sep=getSep(sep)
 
+	$promiseList=[]
 	$G={}
 	beginFunc $G if typeof beginFunc=='function'
 
 	readLine=require('readline').createInterface(
 		input:process.stdin
 	)
+
 	readLine.on 'line',($_)=>
-		cb $G,sep,func,$_
+		r=cb $G,sep,func,$_
+
+		if typeof r?.then=='function'
+			$promiseList.push r
 
 	readLine.on 'close',()=>
-		r=0
-		r=endFunc($G) if typeof endFunc=='function'
-		process.exit r
+		f=($G,results)=>
+			r=null
+			r=endFunc($G,results) if typeof endFunc=='function'
+			finish r,thenProgram
 
-exports.pe=(sep,func,beginFunc,endFunc)=>
-	lineExec sep,func,beginFunc,endFunc,($G,sep,func,$_)=>
-		T execfunc $G,sep,func,$_
+		if $promiseList.length>0
+			Promise.all $promiseList
+			.then (r)=>f($G,r)
+		else
+			f($G)
 
-exports.ne=(sep,func,beginFunc,endFunc)=>
-	lineExec sep,func,beginFunc,endFunc,execfunc
+exports.ne=(sep,func,beginFunc,endFunc,thenProgram)=>
+	lineExec sep,func,beginFunc,endFunc,thenProgram,execfunc
 

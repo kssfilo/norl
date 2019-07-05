@@ -7,12 +7,15 @@
   },
   "@PARTPIPE@_@PARTPIPE@version": "@PARTPIPE@VERSION@PARTPIPE@",
   "dependencies": {
-    "coffee-jshint": "1.1.1",
-    "coffeescript": "2.4.1",
     "getopt": "0.1.0"
   },
   "devDependencies": {
-    "partpipe": "^0.4.0"
+    "partpipe": "0.4.0",
+    "mathjs": "6.0.2",
+    "coffeescript": "2.4.1",
+    "coffee-jshint": "1.1.1",
+    "request-promise": "4.2.4",
+    "request": "^2.88.0"
   },
   "tags": [],
   "keywords": [

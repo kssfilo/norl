@@ -1,15 +1,15 @@
 .SUFFIXES:
 
 NAME=norl
-VERSION=0.0.1
-DESCRIPTION=One Liner NODE.js, Helps to write one line node.js stdin filter program like perl or ruby.(CLI tool/module)
-KEYWORDS=one-liner oneliner perl ruby shell CLI command-line
+VERSION=1.0.0
+DESCRIPTION=one liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.(CLI tool/module)
+KEYWORDS=one-liner oneliner perl ruby shell CLI command-line one line stdin
 
 PKGKEYWORDS=$(shell echo $$(echo $(KEYWORDS)|perl -ape '$$_=join("\",\"",@F)'))
 
 #=
 
-COMMANDS=help pack test clean
+COMMANDS=help pack test clean build
 
 #=
 
@@ -27,7 +27,9 @@ TOOLS=node_modules/.bin
 
 .PHONY:$(COMMANDS)
 
-default:help
+default:build
+
+build:$(TARGETS)
 
 pack:$(ALL)|$(DESTDIR)
 
