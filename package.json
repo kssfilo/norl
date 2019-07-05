@@ -1,0 +1,29 @@
+{
+  "@PARTPIPE@_@PARTPIPE@name": "@PARTPIPE@NAME@PARTPIPE@",
+  "description": "@PARTPIPE@DESCRIPTION@PARTPIPE@",
+  "main": "@PARTPIPE@NAME@PARTPIPE@.js",
+  "bin": {
+    "@PARTPIPE@NAME@PARTPIPE@": "./cli.js"
+  },
+  "@PARTPIPE@_@PARTPIPE@version": "@PARTPIPE@VERSION@PARTPIPE@",
+  "dependencies": {
+    "coffee-jshint": "1.1.1",
+    "coffeescript": "2.4.1",
+    "getopt": "0.1.0"
+  },
+  "devDependencies": {
+    "partpipe": "^0.4.0"
+  },
+  "tags": [],
+  "keywords": [
+    "@PARTPIPE@KEYWORDS@PARTPIPE@"
+  ],
+  "author": {
+    "name": "kssfilo"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/kssfilo/@PARTPIPE@NAME@PARTPIPE@.git"
+  }
+}
