@@ -1,7 +1,7 @@
 norl
 ==========
 
-one liner's node.js, helps to write one line stdin filter program like perl/ruby.(CLI tool/module)
+one liner's node.js, helps to write one line stdin filter program by node.js JavaScript like perl/ruby.(CLI tool/module)
 
 ## Example
 
@@ -67,7 +67,7 @@ npm install -g norl
 	# -J: JSON.stringify($_,null,"\t") at end of stream
 ```
 
-## CSV Processing
+### CSV Processing
 
 ```
 	$ cat test2.txt
@@ -81,7 +81,7 @@ npm install -g norl
 	# -C: $_=$F.join(',') after -e <program>.You can change seperator like -C ' ' (output) -F / +/ (input)
 ```
 
-## Shell Execution
+### Shell Execution
 
 ```
 	$ cat test3.txt
@@ -175,4 +175,4 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 ```
 ## Change Log
 
-- 1.0.0:first release
+- 1.0.x:first release
