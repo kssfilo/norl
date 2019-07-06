@@ -14,12 +14,24 @@
 	test "$(echo "Hello World"|dist/cli.js -Je '$_={"A":"Norl"}'|tr -d '\t\n ')" == '{"A":"Norl"}'
 }
 
+@test "-Je with null" {
+	test "$(echo "Hello World"|dist/cli.js -Je '$_=null')" == ''
+}
+
 @test "-Pe" {
 	test "$(echo '{"A":"Hello World"}'|dist/cli.js -Pje '$_=$_.A')" == "Hello World"
 }
 
+@test "-Pe with null" {
+	test "$(echo '{"A":"Hello World"}'|dist/cli.js -Pje '$_=null')" == ""
+}
+
 @test "-pe" {
 	test "$(echo Hello World|dist/cli.js -pe '$_=$_.replace(/World/,"Earth")')" == "Hello Earth"
+}
+
+@test "-pe with null" {
+	test "$(echo -e "Hello\nWorld"|dist/cli.js -pe 'if($_=="Hello")$_=null')" == "World"
 }
 
 @test "-ne" {

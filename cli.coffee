@@ -63,9 +63,9 @@ $opt.getopt (o,p)->
 			$autoSplit=true
 			$splitSep=JSON
 		when 'J'
-			$autoPrint=';console.log(JSON.stringify($_,null,"\t"));'
+			$autoPrint=';if(typeof $_!="undefined"&&typeof $_=="object"&&$_!=null){console.log(JSON.stringify($_,null,"\t"))};'
 		when 'P'
-			$autoPrint=';console.log($_);'
+			$autoPrint=';if(typeof $_!="undefined"&&$_!=null){console.log($_)};'
 		when 'M'
 			$ignoreNorlModules=true
 		when 'm'
@@ -97,7 +97,7 @@ switch $command
 			-d:debug
 			-e <program>:one line program (without -n -p option, $_ contains whole data from stdin)
 			-n:call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)
-			-p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe)
+			-p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null
 			-a:autosplit mode (splits $_ into $F) default split() pattern is ','(with -n -p) or \\n(without -n -p)
 			-F /pattern/ :split() pattern for -a switch (//'s are optional,you can use string instead of regex)
 			-B <program>:(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p).
@@ -205,11 +205,11 @@ switch $command
 
 			$printLine=switch
 				when $command=='pe' and $outputSeperator
-					";console.log($F.join('#{$outputSeperator}'));"
+					";if(typeof $F!='undefined'&&Array.isArray($F)){console.log($F.join('#{$outputSeperator}'))};"
 				when $command=='pe' and $executeMode
-					";console.log(require('child_process').execSync($_).toString().trim());"
+					";if(typeof $_!='undefined'&&typeof $_=='string'){console.log(require('child_process').execSync($_).toString().trim())};"
 				when $command=='pe' and !$outputSeperator? and !$executeMode
-					';console.log($_);'
+					";if(typeof $_!='undefined'&&$_!=null){console.log($_)};"
 				when $autoPrint and $command in ['e','r']
 					$autoPrint
 				else
