@@ -1,7 +1,7 @@
 norl
 ==========
 
-one liner's node.js, helps to write one line stdin filter program by node.js JavaScript like perl/ruby.(CLI tool/module)
+one liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise feature(CLI tool/module)
 
 ## Example
 

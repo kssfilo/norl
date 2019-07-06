@@ -90,7 +90,7 @@ switch $command
 		#{$appName} <options> -e '<program>'  [-B '<program'>] [-E '<program>']
 		Copyright(c) 2019,kssfilo(https://kanasys.com/gtech/)
 
-		one liner's node.js, helps to write one line stdin filter program by node.js JavaScript like perl/ruby.(CLI tool/module)
+		one liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise feature(CLI tool/module)
 
 		options:
 			-h/-?:this help
