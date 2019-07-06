@@ -48,6 +48,11 @@
 	test "$r" == "d Night"
 }
 
+@test "-F" {
+	r=$(echo -e "Hello World\nGood Night"|dist/cli.js -F /oo/ -e 'console.log($F[1])')
+	test "$r" == "d Night"
+}
+
 @test "-ane" {
 	r=$(echo -e "Hello,World\nGood,Night"|dist/cli.js -ane 'console.log($F[1])')
 	test "$(echo $r)" == "World Night"
@@ -63,8 +68,13 @@
 	test "$(echo $r)" == "Hello Norl Good Norl"
 }
 
-@test "-C" {
+@test "-c" {
 	r=$(echo -e "Hello,World\nGood,Night"|dist/cli.js -C -ape '$F[1]="Norl"')
+	test "$(echo $r)" == "Hello,Norl Good,Norl"
+}
+
+@test "-C" {
+	r=$(echo -e "Hello,World\nGood,Night"|dist/cli.js -cape '$F[1]="Norl"')
 	test "$(echo $r)" == "Hello,Norl Good,Norl"
 }
 

@@ -55,16 +55,32 @@ npm install -g norl
 
 ```
 	$ cat test2.txt
-	Apple,12
-	Google,3
+	apple,12
+	google,3
 
-	cat test2.txt| norl -B 'a={}' -ane 'a[$F[0]]=$F[1]' -JE '$_=a'
+	cat test2.txt| norl -B 'a={}' -ane 'a[$F[0]]=Number($F[1])' -JE '$_=a'
 	{
-		"apple": "12",
-		"google": "3"
+		"apple": 12,
+		"google": 3
 	}
 
 	# -J: JSON.stringify($_,null,"\t") at end of stream
+```
+
+### JSON processing (-j + -J)
+
+```
+	$ cat test2.json
+	{
+		"apple": 12,
+		"google": 3
+	}
+
+	cat test2.json| norl -jJe '$_.apple+=1'
+	{
+		"apple": 13,
+		"google": 3
+	}
 ```
 
 ### CSV Processing
@@ -74,27 +90,12 @@ npm install -g norl
 	Apple,12
 	Google,3
 
-	cat test2.txt| norl -ape '$F[1]=parseInt($F[1])*2' -C
-	Apple,24
-	Google,6
+	cat test2.txt| norl -cape '$F[1]=Number($F[1])+2' 
+	Apple,14
+	Google,5
 
-	# -C: $_=$F.join(',') after -e <program>.You can change seperator like -C ' ' (output) -F / +/ (input)
+	# -c: $_=$F.join(',') after -e <program>.You can change seperator by -C ' ' (output) -F / +/ (input)
 ```
-
-### Shell Execution
-
-```
-	$ cat test3.txt
-	Hello,Norl
-	Goodnight,Norl
-
-	cat test3.txt| norl -aXpe '$_=`echo ${$F[0]}|tr "o" "O"`'
-	HellO
-	GOOdnight
-
-	# -X: execute $_ as shell command after each -e <program> then print result.works with -p. you can use norl like xargs
-```
-
 
 ### Module Preloading
 
@@ -136,6 +137,20 @@ you can return promise object in -e  or -E. norl waits result and print it if -P
 
 if Promise is returned by -e program in -n context, norl collects it and Promise.all() to wait before -E program then pass the result array into -E program.
 
+### Shell Execution
+
+```
+	$ cat test3.txt
+	Hello,Norl
+	Goodnight,Norl
+
+	cat test3.txt| norl -aXpe '$_=`echo ${$F[0]}|tr "o" "O"`'
+	HellO
+	GOOdnight
+
+	# -X: execute $_ as shell command after each -e <program> then print result.works with -p. you can use norl like xargs
+```
+
 ## Usage
 
 ```
@@ -175,4 +190,5 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 ```
 ## Change Log
 
+- 1.1.x:adds -c option/able to omit -a when -F is specified
 - 1.0.x:first release

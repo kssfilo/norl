@@ -28,7 +28,7 @@ $appName='norl'
 
 
 try
-	$opt.setopt 'XC::m:rMPjJpdh?ne:aF:B:E:'
+	$opt.setopt 'cXC::m:rMPjJpdh?ne:aF:B:E:'
 catch e
 	switch e.type
 		when 'unknown'
@@ -50,6 +50,7 @@ $opt.getopt (o,p)->
 		when 'a'
 			$autoSplit=true
 		when 'F'
+			$autoSplit=true
 			$splitSep=p[0]
 		when 'e'
 			$program=p[0]
@@ -72,6 +73,8 @@ $opt.getopt (o,p)->
 			$additionalModules=p[0]
 		when 'C'
 			$outputSeperator=p[0] ? ','
+		when 'c'
+			$outputSeperator?=','
 		when 'X'
 			$executeMode=true
 
@@ -99,13 +102,14 @@ switch $command
 			-n:call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)
 			-p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null
 			-a:autosplit mode (splits $_ into $F) default split() pattern is ','(with -n -p) or \\n(without -n -p)
-			-F /pattern/ :split() pattern for -a switch (//'s are optional,you can use string instead of regex)
+			-F /pattern/ :split() pattern for -a switch (you can use string instead of regex.dont need -a when -F option is specified)
 			-B <program>:(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p).
 			-E <program>:(End) additional program which runs AFTER -e program.for finalizing(works with -n -p).
 			-j JSON.parse stdin then stores into $_ (can't use with -n -p)
 			-J JSON.stringfy($_,null,"\\t") and print it at end of stream (you can also print Promise result.see example)
 			-P console.log($_) at end of stream  (you can also print Promise result.see example)
 			-C [<seperator>]: CSV like output. works with -p. $_=$F.join(<seperator>) before console.log($_). use with -a to manipulate CSV like files
+			-c same as -C but use default ',' seperator.useful for joining option to process CSV like -cape <program>
 			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs
 			-M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
 			-m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
@@ -129,7 +133,7 @@ switch $command
 			# Hello World
 			# --- (-p option: same as -n but console.log($_) after each -e <program>)
 			
-			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -E 'console.log(`total:${count}`)'
+			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -E 'console.log(`total:${count}`)'
 			# total:22 (-B/-E option: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
 			
 			echo -e "Hello,12\\nGoodnight,30"|#{$appName} -a -ne 'console.log($F[1])'
@@ -144,21 +148,21 @@ switch $command
 			# Hello World (-j option: assume stdin is JSON.  $_=JSON.parse(stdin) before -e <program>)
 
 			#
-			# 3. Printing Result(-P / -J / -C)
+			# 3. Printing Result(-P / -J / -c)
 			#
 			
-			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -PE '$_=`total:${count}`'
+			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -PE '$_=`total:${count}`'
 			# total:22 (-P option: console.log($_) after the end of stream. for omitting console.log(). you must assign any string to $_ in -e(without -n) or -E(with -n) )
 			
-			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -JE '$_={total:count}'
+			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -JE '$_={total:count}'
 			# {"total":22} (-J option: same as -P but prints JSON. you must assign any object to $_ in -e(without -n) or -E(with -n) )
 			
-			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -C -ape '$F[1]="Norl"'
+			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -cape '$F[1]="Norl"'
 			# Hello,Norl
-			# Goodnight,Norl (-C option: CSV like output. Join $F ($_=$F.join(',')) after -pe <program>. works with -p. you can change seperator like -C ' ')
+			# Goodnight,Norl (-c option: CSV like output. Join $F ($_=$F.join(',')) after -pe <program>. works with -p. you can change seperator by -C ' ')
 			
 			#
-			# 4. Handling JSON / CSV easily (combine -J + -j, -C + -a)
+			# 4. Handling JSON / CSV easily (combine -J + -j, -c + -a)
 			#
 			
 			echo '{"s":"Hello World","c":10}' | #{$appName} -jJe '$_.c=20'
@@ -167,13 +171,13 @@ switch $command
 			echo '{"s":{"t":"Hello World"}}' | #{$appName} -jJe '$_=$_.s'
 			# {"t":"Hello World"} (-J + -j option: you can assign a part of input JSON to $_.
 			
-			echo -e "Hello,2\\nGoodnight,3"|#{$appName} -C -ape '$F[1]=parseInt($F[1])+1'
+			echo -e "Hello,2\\nGoodnight,3"|#{$appName} -cape '$F[1]=Number($F[1])+1'
 			# Hello,3
-			# Goodnight,4 (combining -C +a option: you can modify columns by just reassigning $F[n] fields)
+			# Goodnight,4 (combining -c +a option: you can modify columns by just reassigning $F[n] fields)
 
-			echo -e "Hello,1,2,3\\nGoodnight,4,5,6"|#{$appName} -C -ape '$F=[$F[0],$F[2]]'
+			echo -e "Hello,1,2,3\\nGoodnight,4,5,6"|#{$appName} -cape '$F=[$F[0],$F[2]]'
 			# Hello,2
-			# Goodnight,5 (-C + -a option: you can reassign new array into $F, useful to filter columns like this example)
+			# Goodnight,5 (-c + -a option: you can reassign new array into $F, useful to filter columns like this example)
 
 
 			#

@@ -10,12 +10,12 @@
     "getopt": "0.1.0"
   },
   "devDependencies": {
-    "partpipe": "0.4.0",
-    "mathjs": "6.0.2",
-    "coffeescript": "2.4.1",
     "coffee-jshint": "1.1.1",
-    "request-promise": "4.2.4",
-    "request": "^2.88.0"
+    "coffeescript": "2.4.1",
+    "mathjs": "6.0.2",
+    "partpipe": "0.4.0",
+    "request": "2.88.0",
+    "request-promise": "4.2.4"
   },
   "tags": [],
   "keywords": [
