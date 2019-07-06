@@ -139,9 +139,13 @@ switch $command
 			# HellO
 			# GOOdnight (-X: execute $_ after -e <program> then print result, works with -p. you can use #{$appName} like xargs
 
-			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -a -C -pe '$F[1]="Norl"'
+			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -C -ape '$F[1]="Norl"'
 			# Hello,Norl
 			# Goodnight,Norl (-C: $_=$F.join(',') after -e <program>. works with -p for CSV like data. you can change seperator like -C ' '
+			
+			echo -e "Hello,1,2,3\\nGoodnight,4,5,6"|#{$appName} -C -ape '$F=[$F[0],$F[2]]'
+			# Hello,2
+			# Goodnight,5 (-C/-p: you can reassign array to $F, usefull to filter columns)
 			
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -PE '$_=`total:${count}`'
 			# total:22 (-B/-E: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
