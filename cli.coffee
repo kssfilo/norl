@@ -113,15 +113,13 @@ switch $command
 
 
 		example:
-			echo -e 'Hello World\\nGoodnight World' | #{$appName} -e 'console.log($_.replace(/World/,"Norl"))'
+			#
+			# 1. Perl/Ruby like stdin processing(-e / -ne / -pe / -a)
+			#
+
+			echo -e 'Hello World\\nGoodnight World' | #{$appName} -e 'console.log($_.replace(/World/g,"Norl"))'
 			# Hello Norl 
 			# Goodnight Norl ($_=whole stdin)
-			
-			echo '{"s":"Hello World"}' | #{$appName} -j -e 'console.log($_.s)'
-			# Hello World (-j option: $_=JSON.parse(stdin) before -e <program>)
-			
-			echo '{"s":"Hello World"}' | #{$appName} -Pj -e '$_=$_.s'
-			# Hello World (-P option: console.log($_) afer -e <program>)
 
 			echo -e "Hello World\\nGoodnight World"|#{$appName} -ne 'console.log($_.length)'
 			# 11
@@ -130,34 +128,71 @@ switch $command
 			echo -e "Hello World\\nGoodnight World"|#{$appName} -pe 'm=$_.match(/^Hello/);$_=m?$_:"---"'
 			# Hello World
 			# --- (-p option: same as -n but console.log($_) after each -e <program>)
-
-			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -a -ne 'console.log($F[0])'
-			# Hello
-			# Goodnight (-a: $F=$_.split(',') before -e <program> , you can change seperator by -F option)
 			
-			echo -e "Hello,World\\nGoodnight,World"|norl -aXpe '$_=`echo ${$F[0]}|tr "o" "O"`'
-			# HellO
-			# GOOdnight (-X: execute $_ after -e <program> then print result, works with -p. you can use #{$appName} like xargs
-
-			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -C -ape '$F[1]="Norl"'
-			# Hello,Norl
-			# Goodnight,Norl (-C: $_=$F.join(',') after -e <program>. works with -p for CSV like data. you can change seperator like -C ' '
+			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -E 'console.log(`total:${count}`)'
+			# total:22 (-B/-E option: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
 			
-			echo -e "Hello,1,2,3\\nGoodnight,4,5,6"|#{$appName} -C -ape '$F=[$F[0],$F[2]]'
-			# Hello,2
-			# Goodnight,5 (-C/-p: you can reassign array to $F, usefull to filter columns)
+			echo -e "Hello,12\\nGoodnight,30"|#{$appName} -a -ne 'console.log($F[1])'
+			# 12
+			# 30 (-a option: automatic split. $F=$_.split(',') before -e <program> , you can change seperator by -F option)
+			
+			#
+			# 2. JSON parsing
+			#
+			
+			echo '{"s":"Hello World"}' | #{$appName} -j -e 'console.log($_.s)'
+			# Hello World (-j option: assume stdin is JSON.  $_=JSON.parse(stdin) before -e <program>)
+
+			#
+			# 3. Printing Result(-P / -J / -C)
+			#
 			
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -PE '$_=`total:${count}`'
-			# total:22 (-B/-E: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
+			# total:22 (-P option: console.log($_) after the end of stream. for omitting console.log(). you must assign any string to $_ in -e(without -n) or -E(with -n) )
 			
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=parseInt($F[1])' -B 'count=0' -JE '$_={total:count}'
-			# {"total":22} (same as above but you can print JSON by using -J instead of -P)
+			# {"total":22} (-J option: same as -P but prints JSON. you must assign any object to $_ in -e(without -n) or -E(with -n) )
 			
+			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -C -ape '$F[1]="Norl"'
+			# Hello,Norl
+			# Goodnight,Norl (-C option: CSV like output. Join $F ($_=$F.join(',')) after -pe <program>. works with -p. you can change seperator like -C ' ')
+			
+			#
+			# 4. Handling JSON / CSV easily (combine -J + -j, -C + -a)
+			#
+			
+			echo '{"s":"Hello World","c":10}' | #{$appName} -jJe '$_.c=20'
+			# {"s":"Hello World","c":20}  (combining -j +J option: easy to modify JSON file.)
+
+			echo '{"s":{"t":"Hello World"}}' | #{$appName} -jJe '$_=$_.s'
+			# {"t":"Hello World"} (-J + -j option: you can assign a part of input JSON to $_.
+			
+			echo -e "Hello,2\\nGoodnight,3"|#{$appName} -C -ape '$F[1]=parseInt($F[1])+1'
+			# Hello,3
+			# Goodnight,4 (combining -C +a option: you can modify columns by just reassigning $F[n] fields)
+
+			echo -e "Hello,1,2,3\\nGoodnight,4,5,6"|#{$appName} -C -ape '$F=[$F[0],$F[2]]'
+			# Hello,2
+			# Goodnight,5 (-C + -a option: you can reassign new array into $F, useful to filter columns like this example)
+
+
+			#
+			# 5. Modules
+			#
+
 			export NORL_MODULES="mathjs fs"
 			echo -e "1+2\\n3*4"|#{$appName} -pe '$_=mathjs.evaluate($_)' 
 			# 3
-			# 12 (you can preload modules by NORL_MODULES env or -m option. variable name is same as module name but '-' and '.' will be '_' for example, rpn_js=require("rpn-js")
+			# 12 (you can preload modules by NORL_MODULES environment variable. variable name is same as module name but '-' and '.' will be '_' for example, rpn_js=require("rpn-js")
+			
+			echo -e "1+2\\n3*4"|#{$appName} -m 'mathjs' -pe '$_=mathjs.evaluate($_)' 
+			# 3
+			# 12 (-m option:same as above. you can specify additional modules by -m option seperated by space)
 
+			#
+			# 6. Promise
+			#
+			
 			export NORL_MODULES="request-promise"
 			echo -e "https://www.google.com/robots.txt" |#{$appName} -Pe 'return request_promise($_)'
 			# "User-agent: ..... (you can return promise object in -e or -E. #{$appName} waits result and print it if -P or -J is specified or simply drop it without -P/-J)
@@ -166,6 +201,14 @@ switch $command
 			echo -e "https://www.google.com/robots.txt\\nhttps://www.yahoo.com/robots.txt" |#{$appName} -ne 'return request_promise($_)'  -E 'for(i in $_){fs.writeFileSync(`robots-${i}.txt`,$_[i]) }'
 			# robots-0.txt:contains google.com's robots.txt / robots-1.txt:contains yahoo.com's robots.txt
 			# (if Promise is returned by -e program in -n context, #{$appName} collects it and Promise.all() to wait before -E program then pass the result array into -E program.)
+
+			#
+			# 8. More
+			#
+			
+			echo -e "Hello,World\\nGoodnight,World"|norl -aXpe '$_=`echo ${$F[0]}|tr "o" "O"`'
+			# HellO
+			# GOOdnight (-X: execute $_ after -e <program> then print result, works with -p. you can use #{$appName} like xargs
 		"""
 	else
 		try
