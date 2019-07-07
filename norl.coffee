@@ -2,6 +2,7 @@
 
 T=console.log
 E=console.error
+$async=require("async")
 
 getSepRegex=(regOrStr)=>
 	m=regOrStr.match /^\/(.+)\/([im]?)$/
@@ -31,7 +32,8 @@ execfunc=($G,sep,func,$_)=>
 		r=func $G,$_
 	r
 
-#jshint evil:true
+#jshint evil:true 
+
 finish=(r,thenProgram)=>
 	if typeof r?.then=='function'
 		r.then ($_)=>
@@ -69,7 +71,7 @@ lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 	else
 		sep=getSep(sep)
 
-	$promiseList=[]
+	$asyncList=[]
 	$G={}
 	beginFunc $G if typeof beginFunc=='function'
 
@@ -81,7 +83,13 @@ lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 		r=cb $G,sep,func,$_
 
 		if typeof r?.then=='function'
-			$promiseList.push r
+			$asyncList.push ((cb)->
+				this.then (ret)->cb null,ret
+					.catch (e)->cb  e,null
+			).bind(r)
+
+		else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,string). parameters are passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
+			$asyncList.push r
 
 	readLine.on 'close',()=>
 		f=($G,results)=>
@@ -89,9 +97,16 @@ lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 			r=endFunc($G,results) if typeof endFunc=='function'
 			finish r,thenProgram
 
-		if $promiseList.length>0
-			Promise.all $promiseList
-			.then (r)=>f($G,r)
+		if $asyncList.length>0
+			$async.parallelLimit($asyncList,1)
+			.then (rs)=>
+				f($G,rs)
+
+			.catch (e)=>
+				if e.cmd? && e.code?
+					E "stopped(#{e.code}):command( #{e.cmd} )"
+				else
+					E "#{JSON.stringify(e)}"
 		else
 			f($G)
 

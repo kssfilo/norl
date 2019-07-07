@@ -78,11 +78,15 @@
 	test "$(echo $r)" == "Hello,Norl Good,Norl"
 }
 
-@test "-X" {
-	r=$(echo -e "HelloWorld\nGoodNight"|dist/cli.js -Xpe '$_=`echo ${$_}|tr "o" "x"`')
+@test "-x" {
+	r=$(echo -e "HelloWorld\nGoodNight"|dist/cli.js -xpe '$_=`echo ${$_}|tr "o" "x"`')
 	test "$(echo $r)" == "HellxWxrld GxxdNight"
 }
 
+@test "-X" {
+	r=$(echo -e "Hello\nNorl\nNorl\nGoodNight"|dist/cli.js -Xpe '$_=`test "${$_}" != "Norl"`')
+	test "$(echo $r)" == "Hello GoodNight"
+}
 
 @test "-neBE" {
 	test "$(echo -e "Hello World\nGood Night"|dist/cli.js -B 'count=0;lines=0;' -ne 'lines++;count+=$_.length' -E 'console.log(`counts:${count},lines:${lines}`)')" == "counts:21,lines:2"

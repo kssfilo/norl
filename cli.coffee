@@ -10,7 +10,7 @@ $autoPrint=null
 $ignoreNorlModules=false
 $additionalModules=''
 $outputSeperator=null
-$executeMode=false
+$executeMode=null
 
 $autoSplit=false
 $splitSep=null
@@ -28,7 +28,7 @@ $appName='norl'
 
 
 try
-	$opt.setopt 'cXC::m:rMPjJpdh?ne:aF:B:E:'
+	$opt.setopt 'cxXC::m:rMPjJpdh?ne:aF:B:E:'
 catch e
 	switch e.type
 		when 'unknown'
@@ -75,8 +75,10 @@ $opt.getopt (o,p)->
 			$outputSeperator=p[0] ? ','
 		when 'c'
 			$outputSeperator?=','
+		when 'x'
+			$executeMode='result'
 		when 'X'
-			$executeMode=true
+			$executeMode='passthrough'
 
 
 $modules=((unless $ignoreNorlModules then (process.env['NORL_MODULES'] ? '') else '') + " #{$additionalModules ? ''}").replace(/^ +| +$/g,'').split(/ +/).filter((i)=>i!='') ? []
@@ -110,7 +112,8 @@ switch $command
 			-P console.log($_) at end of stream  (you can also print Promise result.see example)
 			-C [<seperator>]: CSV like output. works with -p. $_=$F.join(<seperator>) before console.log($_). use with -a to manipulate CSV like files
 			-c same as -C but use default ',' seperator.useful for joining option to process CSV like -cape <program>
-			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing.
+			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line
+			-x same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. 
 			-M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
 			-m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
 			-r Just run -e <program>. stdin will be ignored.
@@ -209,12 +212,20 @@ switch $command
 			# (if Promise is returned by -e program in -n context, #{$appName} collects it and Promise.all() to wait before -E program then pass the result array into -E program.)
 
 			#
-			# 8. More
+			# 8. Shell
 			#
 			
-			echo -e "Hello,World\\nGoodnight,World"|norl -aXpe '$_=`echo ${$F[0]}|tr "o" "O"`'
+			echo -e "Hello,World\\nGoodnight,World"|norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
 			# HellO
-			# GOOdnight (-X: execute $_ after -e <program> then print result, works with -p. you can use #{$appName} like xargs
+			# GOOdnight 
+			# (-x option: execute $_ as shell command after -e <program> then print stdout of the command, works with -p. you can use #{$appName} like xargs)
+			# (process stops at error condition ($?!=0) at last command. you can ignore error code by appendding '|cat' at end of shell command  like $_='wc -l noexists | cat' )
+			
+			echo -e "README.md\\nnotexists.txt\\npackage.json"|norl -axpe '$_=`test -e ${$_}`'
+			# README.md
+			# package.json
+			# (-X option: same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
+			# (you can easy to create filter program with 'test' or 'grep'. All data(code/stdin/stdout/cmd) is passed to -E <program> . try -E "console.log(JSON.stringify($_,null,2))" to see the object structure.
 		"""
 	else
 		try
@@ -231,7 +242,7 @@ switch $command
 				throw '-C option works with -p'
 
 			if $executeMode and $command != 'pe'
-				throw '-X option works with -p'
+				throw '-x/-X option works with -p'
 
 			$firstArg=switch
 				when $autoSplit and $splitSep? and typeof $splitSep == 'object'
@@ -256,20 +267,27 @@ switch $command
 				$debugConsole "endcode: #{$prog}"
 				$endFunc=eval $prog
 
-			$printLine=switch
+			$afterProgram=switch
 				when $command=='pe' and $outputSeperator
 					";if(typeof $F!='undefined'&&Array.isArray($F)){console.log($F.join('#{$outputSeperator}'))};"
-				when $command=='pe' and $executeMode
-					";if(typeof $_!='undefined'&&typeof $_=='string'){console.log(require('child_process').execSync($_).toString().trim())};"
+				when $command=='pe' and $executeMode=='result'
+					";if(typeof $_!='undefined'&&typeof $_=='string'){return (function(cmd,cb){require('child_process').exec(cmd,function(e,so,se){if(se!=''){console.error(se.trim())};if(so!=''){console.log(so.trim())};cb(e,so);})}).bind(null,$_);};"
+				when $command=='pe' and $executeMode=='passthrough'
+					";if(typeof $_!='undefined'&&typeof $_=='string'){return (function(cmd,$_originalLine,cb){require('child_process').exec(cmd,function(e,so,se){if(!e){console.log($_originalLine);};cb(null,{code:e?e.code:0,cmd:cmd,stdout:so,stderr:se})});}).bind(null,$_,$_originalLine);};"
 				when $command=='pe' and !$outputSeperator? and !$executeMode
 					";if(typeof $_!='undefined'&&$_!=null){console.log($_)};"
 				when $autoPrint and $command in ['e','r']
 					$autoPrint
 				else
 					''
+			$beforeProgram=switch
+				when $command=='pe' and $executeMode=='passthrough'
+					"$_originalLine=$_;"
+				else
+					''
 			
 			$norl=require('./norl')
-			$prog="(function($G,#{$lineName}){#{$program}#{$printLine}})"
+			$prog="(function($G,#{$lineName}){#{$beforeProgram}#{$program}#{$afterProgram}})"
 			$debugConsole "code: #{$prog}"
 			$func=eval($prog)
 

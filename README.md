@@ -42,69 +42,69 @@ you must enclose your program by quote ' or ". if you want to use single quote('
 ### Automatic JSON.parse 
 
 ```
-	$ cat test3.json
-	{
-		"s":"Hello World"
-	}
+$ cat test3.json
+{
+	"s":"Hello World"
+}
 
-	$ cat test3.json | norl -j -Pe '$_=$_.s'
-	Hello World
+$ cat test3.json | norl -j -Pe '$_=$_.s'
+Hello World
 
-	# -j: $_=JSON.parse($_) before calling -e program 
+# -j: $_=JSON.parse($_) before calling -e program 
 ```
 
 ### Automatic JSON.stringify 
 
 ```
-	$ cat test2.txt
-	apple,12
-	google,3
+$ cat test2.txt
+apple,12
+google,3
 
-	cat test2.txt| norl -B 'a={}' -ane 'a[$F[0]]=Number($F[1])' -JE '$_=a'
-	{
-		"apple": 12,
-		"google": 3
-	}
+cat test2.txt| norl -B 'a={}' -ane 'a[$F[0]]=Number($F[1])' -JE '$_=a'
+{
+	"apple": 12,
+	"google": 3
+}
 
-	# -J: JSON.stringify($_,null,"\t") at end of stream
+# -J: JSON.stringify($_,null,"\t") at end of stream
 ```
 
 ### Supor Short JSON Processing (-j + -J)
 
 ```
-	$ cat test2.json
-	{
-		"apple": 12,
-		"google": 3
-	}
+$ cat test2.json
+{
+	"apple": 12,
+	"google": 3
+}
 
-	cat test2.json| norl -jJe '$_.apple+=1'
-	{
-		"apple": 13,
-		"google": 3
-	}
+cat test2.json| norl -jJe '$_.apple+=1'
+{
+	"apple": 13,
+	"google": 3
+}
 ```
 
 ### CSV Processing
 
 ```
-	$ cat test2.txt
-	Apple,12
-	Google,3
+$ cat test2.txt
+Apple,12
+Google,3
 
-	cat test2.txt| norl -cape '$F[1]=Number($F[1])+2' 
-	Apple,14
-	Google,5
+cat test2.txt| norl -cape '$F[1]=Number($F[1])+2' 
+Apple,14
+Google,5
 
-	# -c: $_=$F.join(',') after -e <program>.You can change seperator by -C ' ' (output) -F / +/ (input)
+# -c: $_=$F.join(',') after -e <program>.You can change seperator by -C ' ' (output) -F / +/ (input)
 ```
 
 ### Module Preloading
 
 ```
-	$ export NORL_MODULES="mathjs fs"
-	$ echo "1+2"|norl -pe '$_=mathjs.evaluate($_)' 
-	3
+$ export NORL_MODULES="mathjs fs"
+$ echo "1+2"|norl -pe '$_=mathjs.evaluate($_)' 
+3
 
 ```
 
@@ -119,43 +119,59 @@ set NODE_PATH if you want to use global (npm install -g) module.  or example, $ 
 ### Promise
 
 ```
-	$ export NORL_MODULES="request-promise"
-	$ echo "https://www.google.com/robots.txt" |norl -Pe 'return request_promise($_)'
-	# "User-agent: ..... 
+$ export NORL_MODULES="request-promise"
+$ echo "https://www.google.com/robots.txt" |norl -Pe 'return request_promise($_)'
+User-agent: ..... 
 ```
+
 you can return promise object in -e  or -E. norl waits result and print it if -P or -J is specified.
 
 ```
-	$ cat urls.txt
-	https://www.google.com/robots.txt
-	https://www.yahoo.com/robots.txt
+$ cat urls.txt
+https://www.google.com/robots.txt
+https://www.yahoo.com/robots.txt
 
-	$ export NORL_MODULES="request-promise fs"
-	cat urls.txt |norl -ne 'return request_promise($_)' -E 'for(i in $_){fs.writeFileSync(`robots-${i}.txt`,$_[i]) }'
+$ export NORL_MODULES="request-promise fs"
+cat urls.txt |norl -ne 'return request_promise($_)' -E 'for(i in $_){fs.writeFileSync(`robots-${i}.txt`,$_[i]) }'
 
-	# robots-0.txt <- google.com's robots.txt
-	# robots-1.txt <- contains yahoo.com's robots.txt
+# robots-0.txt <- google.com's robots.txt
+# robots-1.txt <- contains yahoo.com's robots.txt
 ```
 
-if Promise is returned by -e program in -n context, norl collects it and Promise.all() to wait before -E program then pass the result array into -E program.
+if Promise is returned by -e program in -n context, norl collects it and wait all like Promise.all()  before -E program then pass the result array into -E program.
 
 ### Shell Execution
 
 ```
-	$ cat test3.txt
-	Hello,Norl
-	Goodnight,Norl
+$ cat test3.txt
+Hello,Norl
+Goodnight,Norl
 
-	cat test3.txt| norl -aXpe '$_=`echo ${$F[0]}|tr "o" "O"`'
-	HellO
-	GOOdnight
+cat test3.txt| norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
+HellO
+GOOdnight
 
-	# -X: execute $_ as shell command after each -e <program> then print result.works with -p. you can use norl like xargs
-
-	# Tips:
-	# if you want to use single quote(') inside '. use bash single quote escape mode ($'..') like ( norl -re $'console.log("\'")' )
+# -x execute $_ as shell command after each -e <program> then print result.works with -p. you can use norl like xargs
+# process stops at error condition ($?!=0) at last command. you can ignore error code by appendding '|cat' at end of shell command  like $_='wc -l noexists | cat' )
 ```
 
+```
+$ cat test4.txt
+README.md
+NOT_EXISTS.FILE
+package.json
+
+$ cat test4.txt|norl -Xpe '$_=`test -e ${$_}`'
+README.md
+package.json
+
+# -X same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
+# you can easy to create filter program with 'test' or 'grep' command 
+```
+
+#### Tips
+
+if you want to use single quote(') inside '. use bash single quote escape mode ($'..') like ( norl -re $'console.log("\'")' )
 
 ## Usage
 
