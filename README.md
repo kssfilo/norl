@@ -140,6 +140,26 @@ cat urls.txt |norl -ne 'return request_promise($_)' -E 'for(i in $_){fs.writeFil
 
 if Promise is returned by -e program in -n context, norl collects it and wait all like Promise.all()  before -E program then pass the result array into -E program.
 
+### Async.js
+
+```
+$ cat waits.txt
+A,5
+B,1
+C,3
+
+$ cat waits.txt | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));'
+A:5secs
+B:1secs
+C:3secs
+
+```
+returnning function in -n context will be queued and waits all callbacks before running -E program.  the function must be async.js style like "function(cb){cb(null,"OK");)" 
+
+you can pass parameters via .bind().like above. 
+
+by default, execution is sequentional. you can control it by -L [<number>] option. try to append -L 2 to the example above to check behavior. 2 is number of executables in parallel. if you omit <number>, 16 will be used.
+
 ### Shell Execution
 
 ```
@@ -151,7 +171,7 @@ cat test3.txt| norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
 HellO
 GOOdnight
 
-# -x execute $_ as shell command after each -e <program> then print result.works with -p. you can use norl like xargs
+# -x: execute $_ as shell command after each -e <program> then print stdout result.works with -p. you can use norl like xargs
 # process stops at error condition ($?!=0) at last command. you can ignore error code by appendding '|cat' at end of shell command  like $_='wc -l noexists | cat' )
 ```
 
@@ -165,7 +185,7 @@ $ cat test4.txt|norl -Xpe '$_=`test -e ${$_}`'
 README.md
 package.json
 
-# -X same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
+# -X: same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
 # you can easy to create filter program with 'test' or 'grep' command 
 ```
 
@@ -212,5 +232,6 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 ```
 ## Change Log
 
+- 2.0.0:-x/-X option, async.js style callback support. -L option
 - 1.1.x:adds -c option/able to omit -a when -F is specified
 - 1.0.x:first release

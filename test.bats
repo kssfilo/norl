@@ -108,10 +108,43 @@
 	test "$(echo Hello|dist/cli.js -Pe 'return Promise.resolve($_)')" == "Hello"
 }
 
+@test "Promise/-Pre" {
+	test "$(dist/cli.js -Pre 'return Promise.resolve("Hello")')" == "Hello"
+}
+
+@test "Promise/-ne -PE" {
+	test "$(echo Hello|dist/cli.js -ne '$_=$_+"World"' -PE 'return Promise.resolve($_)')" == "[ 'HelloWorld' ]"
+}
+
 @test "Promise/-ne" {
 	test "$(echo -e "Hello\nWorld"|dist/cli.js -Pne 'return Promise.resolve($_)' -E 'return Promise.resolve($_.join(" "))')" == "Hello World"
 }
 
 @test "Promise/-Jne" {
 	test "$(echo -e "Hello\nWorld"|dist/cli.js -Pne 'return Promise.resolve($_)' -E 'return Promise.resolve({a:$_[0],b:$_[1]})')" == "{ a: 'Hello', b: 'World' }"
+}
+
+@test "Aync.js line by line" {
+	a=$(echo -e "A,1\nB,1"|dist/cli.js -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));' -E 'console.log($_) ')	
+	test "$(echo $a)" == "A:1secs B:1secs [ 'A:OK', 'B:OK' ]"
+}
+
+@test "Aync.js line by line with -L" {
+	a=$(echo -e "A,1\nB,1"|dist/cli.js -L 2 -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));' -E 'console.log($_) ')	
+	test "$(echo $a)" == "A:1secs B:1secs [ 'A:OK', 'B:OK' ]"
+}
+
+@test "Aync.js finally" {
+	a=$(echo -e "hoge\nfuga" |dist/cli.js -ne '$_=$_.length' -PE  'return ((g,cb)=>setTimeout(()=>cb(null,g),1000)).bind(null,$_);')
+	test "$a" == "[ 4, 4 ]"
+}
+
+@test "Aync.js -e" {
+	a=$(echo -e "hoge\nfuga" |dist/cli.js -Pe 'return ((g,cb)=>setTimeout(()=>cb(null,"hoge"),1000)).bind(null,$_);')
+	test "$a" == "hoge"
+}
+
+@test "Aync.js -re" {
+	a=$(dist/cli.js -Pre 'return ((g,cb)=>setTimeout(()=>cb(null,"hoge"),1000)).bind(null,$_);')
+	test "$a" == "hoge"
 }

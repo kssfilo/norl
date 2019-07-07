@@ -34,22 +34,35 @@ execfunc=($G,sep,func,$_)=>
 
 #jshint evil:true 
 
-finish=(r,thenProgram)=>
+finish=(r,options)=>
 	if typeof r?.then=='function'
 		r.then ($_)=>
-			eval(thenProgram) if thenProgram?
+			eval(options.finalEval) if options?.finalEval?
 			process.exit 0
+		.catch (e)=>
+			E "#{JSON.stringify(e)}"
+			process.exit 1
+
+	else if typeof r=='function'
+		r (e,$_)=>
+			if e
+				E "#{JSON.stringify(e)}"
+				process.exit 1
+			else
+				eval(options.finalEval) if options?.finalEval?
+				process.exit 0
 	else
+		eval(options.finalEval) if options?.finalEval?
 		process.exit 0
 
-exports.r=(func,thenProgram)=>
+exports.r=(func,options)=>
 	$G={}
 	r=execfunc $G,null,func,'' if typeof func=='function'
-	finish r,thenProgram
+	finish r,options
 
-exports.e=(sep,func,thenProgram)=>
+exports.e=(sep,func,options)=>
 	unless getSep(sep)
-		thenProgram=func
+		options=func
 		func=sep
 		sep=null
 	else
@@ -59,11 +72,11 @@ exports.e=(sep,func,thenProgram)=>
 
 	$G={}
 	r=execfunc $G,sep,func,$_ if typeof func=='function'
-	finish r,thenProgram
+	finish r,options
 
-lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
+lineExec=(sep,func,beginFunc,endFunc,options,cb)=>
 	unless getSep(sep)
-		thenProgram=endFunc
+		options=endFunc
 		endFunc=beginFunc
 		beginFunc=func
 		func=sep
@@ -72,6 +85,7 @@ lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 		sep=getSep(sep)
 
 	$asyncList=[]
+	$results=[]
 	$G={}
 	beginFunc $G if typeof beginFunc=='function'
 
@@ -88,17 +102,21 @@ lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 					.catch (e)->cb  e,null
 			).bind(r)
 
-		else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,string). parameters are passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
+		else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,object). parameters can be passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
 			$asyncList.push r
+
+		else
+			$results.push r
+
 
 	readLine.on 'close',()=>
 		f=($G,results)=>
 			r=null
 			r=endFunc($G,results) if typeof endFunc=='function'
-			finish r,thenProgram
+			finish r,options
 
 		if $asyncList.length>0
-			$async.parallelLimit($asyncList,1)
+			$async.parallelLimit($asyncList,options?.numExecute ? 1)
 			.then (rs)=>
 				f($G,rs)
 
@@ -108,8 +126,8 @@ lineExec=(sep,func,beginFunc,endFunc,thenProgram,cb)=>
 				else
 					E "#{JSON.stringify(e)}"
 		else
-			f($G)
+			f($G,$results)
 
-exports.ne=(sep,func,beginFunc,endFunc,thenProgram)=>
-	lineExec sep,func,beginFunc,endFunc,thenProgram,execfunc
+exports.ne=(sep,func,beginFunc,endFunc,options)=>
+	lineExec sep,func,beginFunc,endFunc,options,execfunc
 

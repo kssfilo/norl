@@ -11,6 +11,7 @@ $ignoreNorlModules=false
 $additionalModules=''
 $outputSeperator=null
 $executeMode=null
+$numExecute=1
 
 $autoSplit=false
 $splitSep=null
@@ -28,7 +29,7 @@ $appName='norl'
 
 
 try
-	$opt.setopt 'cxXC::m:rMPjJpdh?ne:aF:B:E:'
+	$opt.setopt 'L::cxXC::m:rMPjJpdh?ne:aF:B:E:'
 catch e
 	switch e.type
 		when 'unknown'
@@ -73,6 +74,8 @@ $opt.getopt (o,p)->
 			$additionalModules=p[0]
 		when 'C'
 			$outputSeperator=p[0] ? ','
+		when 'L'
+			$numExecute=Number(p[0]) ? 16
 		when 'c'
 			$outputSeperator?=','
 		when 'x'
@@ -108,12 +111,13 @@ switch $command
 			-B <program>:(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p).
 			-E <program>:(End) additional program which runs AFTER -e program.for finalizing(works with -n -p).
 			-j JSON.parse stdin then stores into $_ (can't use with -n -p)
-			-J JSON.stringfy($_,null,"\\t") and print it at end of stream (you can also print Promise result.see example)
-			-P console.log($_) at end of stream  (you can also print Promise result.see example)
+			-J JSON.stringfy($_,null,"\\t") and print it at end of stream after -E program (you can also print Promise/Async.js result.see example)
+			-P console.log($_) at end of stream after -E program (you can also print Promise/Async.js callback result.see example)
 			-C [<seperator>]: CSV like output. works with -p. $_=$F.join(<seperator>) before console.log($_). use with -a to manipulate CSV like files
 			-c same as -C but use default ',' seperator.useful for joining option to process CSV like -cape <program>
 			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line
 			-x same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. 
+			-L [<number>] : by default, shell commands will be executed sequencial. with -L option, commands will run parallel. same effect for async.js style function but Promise().
 			-M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
 			-m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
 			-r Just run -e <program>. stdin will be ignored.
@@ -138,12 +142,12 @@ switch $command
 			# Hello World
 			# --- (-p option: same as -n but console.log($_) after each -e <program>)
 			
-			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -E 'console.log(`total:${count}`)'
-			# total:22 (-B/-E option: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
-			
 			echo -e "Hello,12\\nGoodnight,30"|#{$appName} -a -ne 'console.log($F[1])'
 			# 12
 			# 30 (-a option: automatic split. $F=$_.split(',') before -e <program> , you can change seperator by -F option)
+			
+			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -E 'console.log(`total:${count}`)'
+			# total:22 (-B/-E option: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
 			
 			#
 			# 2. JSON parsing
@@ -157,14 +161,15 @@ switch $command
 			#
 			
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -PE '$_=`total:${count}`'
-			# total:22 (-P option: console.log($_) after the end of stream. for omitting console.log(). you must assign any string to $_ in -e(without -n) or -E(with -n) )
+			# total:22 (-P option: console.log($_) after the end of stream for omitting console.log(). you must assign any string to $_ in -e(without -n) or -E(with -n) )
+			# tips: every $_ of -ne/-pe is stored into an Array then pass it to -E <program> this means you can access it in -E program via $_ , or omit -E (only -P) to check the Array.
 			
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -JE '$_={total:count}'
 			# {"total":22} (-J option: same as -P but prints JSON. you must assign any object to $_ in -e(without -n) or -E(with -n) )
 			
 			echo -e "Hello,World\\nGoodnight,World"|#{$appName} -cape '$F[1]="Norl"'
 			# Hello,Norl
-			# Goodnight,Norl (-c option: CSV like output. Join $F ($_=$F.join(',')) after -pe <program>. works with -p. you can change seperator by -C ' ')
+			# Goodnight,Norl (-c option: CSV like output. Join $F ($_=$F.join(',')) after -pe <program>. works with -p. you can change seperator by -C)
 			
 			#
 			# 4. Handling JSON / CSV easily (combine -J + -j, -c + -a)
@@ -178,7 +183,7 @@ switch $command
 			
 			echo -e "Hello,2\\nGoodnight,3"|#{$appName} -cape '$F[1]=Number($F[1])+1'
 			# Hello,3
-			# Goodnight,4 (combining -c +a option: you can modify columns by just reassigning $F[n] fields)
+			# Goodnight,4 (combining -c +a option: you can modify CSV columns by just reassigning $F[n] fields)
 
 			echo -e "Hello,1,2,3\\nGoodnight,4,5,6"|#{$appName} -cape '$F=[$F[0],$F[2]]'
 			# Hello,2
@@ -212,6 +217,12 @@ switch $command
 			# (if Promise is returned by -e program in -n context, #{$appName} collects it and Promise.all() to wait before -E program then pass the result array into -E program.)
 
 			#
+			# 7. async.js 
+			#
+			
+
+
+			#
 			# 8. Shell
 			#
 			
@@ -232,8 +243,8 @@ switch $command
 			if $splitSep==JSON and $command in ['pe','ne']
 				throw '-j option is not able to use with -n/-p option'
 
-			if $autoPrint and $command in ['pe','ne'] and !$endProgram
-				throw '-P option needs -E <program> when -n/-p option is specified'
+			#if $autoPrint and $command in ['pe','ne'] and !$endProgram
+			#	throw '-P option needs -E <program> when -n/-p option is specified'
 			
 			if !($command in ['pe','ne']) and ($beginProgram? or $endProgram)
 				throw '-B/-E options works with -n/-p option'
@@ -266,6 +277,10 @@ switch $command
 				$prog="(function($G,$_){#{$endProgram}#{$autoPrint ? ''}})"
 				$debugConsole "endcode: #{$prog}"
 				$endFunc=eval $prog
+			else if $autoPrint
+				$prog="(function($G,$_){#{$autoPrint}})"
+				$debugConsole "endcode: #{$prog}"
+				$endFunc=eval $prog
 
 			$afterProgram=switch
 				when $command=='pe' and $outputSeperator
@@ -279,7 +294,8 @@ switch $command
 				when $autoPrint and $command in ['e','r']
 					$autoPrint
 				else
-					''
+					';return $_;'
+
 			$beforeProgram=switch
 				when $command=='pe' and $executeMode=='passthrough'
 					"$_originalLine=$_;"
@@ -303,22 +319,26 @@ switch $command
 			catch e
 				$E e
 				throw "Failed to load one of NORL_MOODULES [#{$modules.join(',')}]\n Check NODE_PATH and set like 'export NODE_PATH=$(npm root -g)'"
+
+			$options=
+				finalEval:$autoPrint
+				numExecute:$numExecute
 				
 			switch $command
 				when 'r'
-					$norl.r($func)
+					$norl.r $func,$options
 
 				when 'e'
 					if $autoSplit
-						$norl.e($firstArg,$func,$autoPrint)
+						$norl.e $firstArg,$func,$options
 					else
-						$norl.e($func,$autoPrint)
+						$norl.e $func,$options
 
 				when 'ne','pe'
 					if $autoSplit
-						$norl.ne($firstArg,$func,$beginFunc,$endFunc,$autoPrint)
+						$norl.ne $firstArg,$func,$beginFunc,$endFunc,$options
 					else
-						$norl.ne($func,$beginFunc,$endFunc,$autoPrint)
+						$norl.ne $func,$beginFunc,$endFunc,$options
 
 		catch e
 			$E e
