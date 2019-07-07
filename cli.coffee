@@ -240,7 +240,7 @@ switch $command
 			# README.md
 			# package.json
 			# (-X option: same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
-			# (you can easy to create filter program with 'test' or 'grep'. All data(code/stdin/stdout/cmd) is passed to -E <program> . try -E "console.log(JSON.stringify($_,null,2))" to see the object structure.
+			# (you can easy to create filter program with 'test' or 'grep'. All data(code/stdin/stdout/cmd) is passed to -E <program> . try -E "console.error(JSON.stringify($_,null,2))" to see the object structure.(useful for debugging)
 		"""
 	else
 		try

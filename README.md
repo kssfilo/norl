@@ -170,10 +170,11 @@ Goodnight,Norl
 cat test3.txt| norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
 HellO
 GOOdnight
-
-# -x: execute $_ as shell command after each -e <program> then print stdout result.works with -p. you can use norl like xargs
-# process stops at error condition ($?!=0) at last command. you can ignore error code by appendding '|cat' at end of shell command  like $_='wc -l noexists | cat' )
 ```
+
+-x: execute $_ as shell command after each -e <program> then print stdout result.works with -p. you can use norl like xargs
+
+process stops at error condition ($?!=0) at last command. you can ignore error code by appendding '|cat' at end of shell command  like $_='wc -l noexists | cat' )
 
 ```
 $ cat test4.txt
@@ -184,10 +185,11 @@ package.json
 $ cat test4.txt|norl -Xpe '$_=`test -e ${$_}`'
 README.md
 package.json
-
-# -X: same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
-# you can easy to create filter program with 'test' or 'grep' command 
 ```
+
+-X: same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
+
+you can easy to create filter program with 'test' or 'grep'. All data(code/stdin/stdout/cmd) is passed to -E <program> . try -E "console.error(JSON.stringify($_,null,2))" to see the object structure.(useful for debugging)
 
 #### Tips
 
@@ -232,6 +234,6 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 ```
 ## Change Log
 
-- 2.0.0:-x/-X option, async.js style callback support. -L option
+- 2.0.x:-x/-X option, async.js style callback support. -L option
 - 1.1.x:adds -c option/able to omit -a when -F is specified
 - 1.0.x:first release
