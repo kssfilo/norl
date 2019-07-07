@@ -221,6 +221,10 @@ switch $command
 			#
 			
 
+			echo -e "A,5\nB,1"  | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));'
+			#A:5secs
+			#B:1secs (returnning function in -n context will be queued and waits all callbacks before running -E program.  the function must be async.js style like "function(cb){cb(null,"OK");})"  )
+			# (you can pass parameters via .bind().like above.  by default, execution is sequentional. you can control it by -L [<number>] option. try to append -L 2 to the example above to check behavior. 2 is number of executables in parallel. if you omit <number>, 16 will be used. )
 
 			#
 			# 8. Shell
