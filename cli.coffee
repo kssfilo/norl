@@ -110,11 +110,13 @@ switch $command
 			-P console.log($_) at end of stream  (you can also print Promise result.see example)
 			-C [<seperator>]: CSV like output. works with -p. $_=$F.join(<seperator>) before console.log($_). use with -a to manipulate CSV like files
 			-c same as -C but use default ',' seperator.useful for joining option to process CSV like -cape <program>
-			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs
+			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing.
 			-M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
 			-m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
 			-r Just run -e <program>. stdin will be ignored.
 
+		tips:
+			you must enclose your program by quote ' or ". if you want to use single quote(') inside '. use bash single quote escape like ( norl -re $'console.log("\'")' )
 
 		example:
 			#

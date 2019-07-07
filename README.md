@@ -37,6 +37,8 @@ npm install -g norl
 
 ## More Examples
 
+you must enclose your program by quote ' or ". if you want to use single quote(') inside '. use bash single quote escape like ( norl -re $'console.log("\'")' )
+
 ### Automatic JSON.parse 
 
 ```
@@ -67,7 +69,7 @@ npm install -g norl
 	# -J: JSON.stringify($_,null,"\t") at end of stream
 ```
 
-### JSON processing (-j + -J)
+### Supor Short JSON Processing (-j + -J)
 
 ```
 	$ cat test2.json
@@ -149,7 +151,11 @@ if Promise is returned by -e program in -n context, norl collects it and Promise
 	GOOdnight
 
 	# -X: execute $_ as shell command after each -e <program> then print result.works with -p. you can use norl like xargs
+
+	# Tips:
+	# if you want to use single quote(') inside '. use bash single quote escape mode ($'..') like ( norl -re $'console.log("\'")' )
 ```
+
 
 ## Usage
 
