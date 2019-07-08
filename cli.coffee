@@ -95,14 +95,16 @@ $debugConsole "ENV: #{$modules}"
 switch $command
 	when 'usage'
 		console.log """
-		#{$appName} <options> -e '<program>'  [-B '<program'>] [-E '<program>']
-		Copyright(c) 2019,kssfilo(https://kanasys.com/gtech/)
+		## command line
 
-		one liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise feature(CLI tool/module)
+			#{$appName} <options> -e '<program>'  [-B '<program'>] [-E '<program>']
+		
+			Copyright(c) 2019,kssfilo(https://kanasys.com/gtech/)
+			one liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise feature(CLI tool/module)
 
-		options:
-			-h/-?:this help
-			-d:debug
+		## options
+		
+			-h/-?:this help -d:debug
 			-e <program>:one line program (without -n -p option, $_ contains whole data from stdin)
 			-n:call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)
 			-p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null
@@ -122,13 +124,11 @@ switch $command
 			-m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
 			-r Just run -e <program>. stdin will be ignored.
 
-		tips:
-			you must enclose your program by quote ' or ". if you want to use single quote(') inside '. use bash single quote escape like ( norl -re $'console.log("\'")' )
+		## examples
 
-		example:
-			#
-			# 1. Perl/Ruby like stdin processing(-e / -ne / -pe / -a)
-			#
+		you must enclose your program by quote ' or ". if you want to use single quote(') inside '. use bash single quote escape like ( norl -re $'console.log("\'")' )
+			
+		### 1. Perl/Ruby like stdin processing(-e / -ne / -pe / -a)
 
 			echo -e 'Hello World\\nGoodnight World' | #{$appName} -e 'console.log($_.replace(/World/g,"Norl"))'
 			# Hello Norl 
@@ -149,16 +149,12 @@ switch $command
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -E 'console.log(`total:${count}`)'
 			# total:22 (-B/-E option: runs <program> at begining(-B) or end(-E) of stream.works with -n/-p option.)
 			
-			#
-			# 2. JSON parsing
-			#
+		### 2. JSON parsing
 			
 			echo '{"s":"Hello World"}' | #{$appName} -j -e 'console.log($_.s)'
 			# Hello World (-j option: assume stdin is JSON.  $_=JSON.parse(stdin) before -e <program>)
-
-			#
-			# 3. Printing Result(-P / -J / -c)
-			#
+			
+		### 3. Printing Result(-P / -J / -c)
 			
 			echo -e "Hello,10\\nGoodnight,12"|#{$appName} -ane 'count+=Number($F[1])' -B 'count=0' -PE '$_=`total:${count}`'
 			# total:22 (-P option: console.log($_) after the end of stream for omitting console.log(). you must assign any string to $_ in -e(without -n) or -E(with -n) )
@@ -171,9 +167,7 @@ switch $command
 			# Hello,Norl
 			# Goodnight,Norl (-c option: CSV like output. Join $F ($_=$F.join(',')) after -pe <program>. works with -p. you can change seperator by -C)
 			
-			#
-			# 4. Handling JSON / CSV easily (combine -J + -j, -c + -a)
-			#
+		### 4. Handling JSON / CSV easily (combine -J + -j, -c + -a)
 			
 			echo '{"s":"Hello World","c":10}' | #{$appName} -jJe '$_.c=20'
 			# {"s":"Hello World","c":20}  (combining -j +J option: easy to modify JSON file.)
@@ -189,11 +183,8 @@ switch $command
 			# Hello,2
 			# Goodnight,5 (-c + -a option: you can reassign new array into $F, useful to filter columns like this example)
 
-
-			#
-			# 5. Modules
-			#
-
+		### 5. Modules
+			
 			export NORL_MODULES="mathjs fs"
 			echo -e "1+2\\n3*4"|#{$appName} -pe '$_=mathjs.evaluate($_)' 
 			# 3
@@ -203,9 +194,7 @@ switch $command
 			# 3
 			# 12 (-m option:same as above. you can specify additional modules by -m option seperated by space)
 
-			#
-			# 6. Promise
-			#
+		### 6. Promise
 			
 			export NORL_MODULES="request-promise"
 			echo -e "https://www.google.com/robots.txt" |#{$appName} -Pe 'return request_promise($_)'
@@ -216,19 +205,14 @@ switch $command
 			# robots-0.txt:contains google.com's robots.txt / robots-1.txt:contains yahoo.com's robots.txt
 			# (if Promise is returned by -e program in -n context, #{$appName} collects it and Promise.all() to wait before -E program then pass the result array into -E program.)
 
-			#
-			# 7. async.js 
-			#
+		### 7. async.js 
 			
-
-			echo -e "A,5\nB,1"  | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));'
+			echo -e "A,5\\nB,1"  | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));'
 			#A:5secs
 			#B:1secs (returnning function in -n context will be queued and waits all callbacks before running -E program.  the function must be async.js style like "function(cb){cb(null,"OK");})"  )
 			# (you can pass parameters via .bind().like above.  by default, execution is sequentional. you can control it by -L [<number>] option. try to append -L 2 to the example above to check behavior. 2 is number of executables in parallel. if you omit <number>, 16 will be used. )
 
-			#
-			# 8. Shell
-			#
+		### 8. Shell
 			
 			echo -e "Hello,World\\nGoodnight,World"|norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
 			# HellO
@@ -241,6 +225,11 @@ switch $command
 			# package.json
 			# (-X option: same as x but path throw input line instead of stdout of shell command.checks $? result code each line then print input line if $?==0. DONT stop execution if $!=0)
 			# (you can easy to create filter program with 'test' or 'grep'. All data(code/stdin/stdout/cmd) is passed to -E <program> . try -E "console.error(JSON.stringify($_,null,2))" to see the object structure.(useful for debugging)
+
+		### 9. Result Code
+			if cat README.md|norl -ae 'return $F.length<15?0:1';then echo "README.md is too short!";fi
+			# README.md is too short!
+			# (if you return a number at final (-e or -E) function. the number will be shell result code $?.)
 		"""
 	else
 		try

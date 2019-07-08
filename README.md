@@ -1,7 +1,9 @@
-norl
-==========
+# norl - one liner's node.js like perl / ruby (CLI tool)
 
 one liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise feature(CLI tool/module)
+
+- [npmjs](https://www.npmjs.com/package/norl)
+- [GitHub](https://github.com/kssfilo/norl)
 
 ## Example
 
@@ -105,7 +107,6 @@ Google,5
 $ export NORL_MODULES="mathjs fs"
 $ echo "1+2"|norl -pe '$_=mathjs.evaluate($_)' 
 3
-
 ```
 
 you can preload modules by NORL_MODULES environment variable or -m option.
@@ -152,7 +153,6 @@ $ cat waits.txt | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${
 A:5secs
 B:1secs
 C:3secs
-
 ```
 returnning function in -n context will be queued and waits all callbacks before running -E program.  the function must be async.js style like "function(cb){cb(null,"OK");)" 
 
@@ -195,6 +195,18 @@ you can easy to create filter program with 'test' or 'grep'. All data(code/stdin
 
 if you want to use single quote(') inside '. use bash single quote escape mode ($'..') like ( norl -re $'console.log("\'")' )
 
+### Result code
+
+```
+$ if cat README.md|norl -ae 'return $F.length<15?0:1';then echo "README.md is too short!";fi
+```
+
+if you return a number at final (-e or -E) function. the number will be shell result code $?.
+
+you can use norl as like 'test' command.
+
+some option (-P -J) will be cancelled. you don't need to return if you want to make $? to 0. for example $ cat ..|norl -je 'if($_.error){return 1;}'
+
 ## Demo
 
 ### wc -l (counts lines)
@@ -207,19 +219,15 @@ cat README.md | norl -aPe '$_=$F.length'
 #norl version
 ```
 
-## JSON Pretty Print
+### JSON Pretty Print
 
 ```
 cat package.json|norl -jJ
 ```
 
-## Detail Usage
-
-```
 @PARTPIPE@|dist/cli.js -h
-See npmjs.com or norl -h
+You can see detail usage on npmjs.com or norl -h 
 @PARTPIPE@
-```
 
 ## Module
 
@@ -250,8 +258,10 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 # function(-E):  function($G){...} 
 # $G is global object for communicating each functions.
 ```
+
 ## Change Log
 
+- 2.1.x:controling process.exit(n) code by returning number at final function.(-P -J will be cancelled)
 - 2.0.x:-x/-X option, async.js style callback support. -L option
 - 1.1.x:adds -c option/able to omit -a when -F is specified
 - 1.0.x:first release
