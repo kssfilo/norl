@@ -2,7 +2,11 @@
 
 T=console.log
 E=console.error
+D=(opt,str)=>
+	E "norl:"+str if opt.isDebugMode
+
 $async=require("async")
+fs=require 'fs'
 
 getSepRegex=(regOrStr)=>
 	m=regOrStr.match /^\/(.+)\/([im]?)$/
@@ -21,62 +25,91 @@ getSep=(sep)=>
 		regex=sep
 	return(regex)
 
-execfunc=($G,sep,func,$_)=>
+execfunc=($G,sep,func,$_,streamId)=>
 	r=null
 	if sep?
 		if (sep instanceof RegExp) or (typeof(sep)=='string')
-			r=func $G,$_,$_.split(sep)
+			if Array.isArray $_
+				f=(x.split(sep) for x in $_)
+			else
+				f=$_.split sep
+			r=func $G,$_,f,streamId
 		else
-			r=func $G,JSON.parse($_)
+			if Array.isArray $_
+				j=(JSON.parse x for x in $_)
+			else
+				j=JSON.parse $_
+			r=func $G,j,[],streamId
 	else
-		r=func $G,$_
+		r=func $G,$_,[],streamId
 	r
 
 #jshint evil:true 
 
-finish=(r,options)=>
+finish=(r,opt)=>
+	D opt,"all programs have been completed.finalizing."
+
 	if typeof r?.then=='function'
+		D opt,"result is Promise. waiting complete."
 		r.then ($_)=>
-			eval(options.finalEval) if options?.finalEval?
+			D opt,"Promise finished."
+			eval(opt.finalEval) if opt?.finalEval?
 			process.exit 0
 		.catch (e)=>
 			E "#{JSON.stringify(e)}"
 			process.exit 1
 
 	else if typeof r=='function'
+		D opt,"result is async function. waiting complete."
 		r (e,$_)=>
+			D opt,"async function finished."
 			if e
 				E "#{JSON.stringify(e)}"
 				process.exit 1
 			else
-				eval(options.finalEval) if options?.finalEval?
+				eval(opt.finalEval) if opt?.finalEval?
 				process.exit 0
 	else
-		eval(options.finalEval) if options?.finalEval?
+		D opt,"result: #{JSON.stringify r}"
+		eval(opt.finalEval) if opt?.finalEval?
 		process.exit if (typeof r == 'number') then r else 0
 
-exports.r=(func,options)=>
+exports.r=(func,opt)=>
 	$G={}
-	r=execfunc $G,null,func,'' if typeof func=='function'
-	finish r,options
+	D opt,"-r mode:no input streams."
+	r=execfunc $G,null,func,'',0 if typeof func=='function'
+	finish r,opt
 
-exports.e=(sep,func,options)=>
+exports.e=(sep,func,opt)=>
 	unless getSep(sep)
-		options=func
+		opt=func
 		func=sep
 		sep=null
 	else
 		sep=getSep(sep)
 
-	$_=require('fs').readFileSync('/dev/stdin', 'utf8').toString()
+	inputStreams=opt?.inputFiles ? ['/dev/stdin']
+	D opt,"input streams:#{inputStreams}"
+
+	try
+		streams=(fs.readFileSync(inputStream, 'utf8') for inputStream in inputStreams)
+	catch e
+		E "failed to open #{e.path ? 'stream'}"
+		process.exit 1
 
 	$G={}
-	r=execfunc $G,sep,func,$_ if typeof func=='function'
-	finish r,options
 
-lineExec=(sep,func,beginFunc,endFunc,options,cb)=>
+	$_=if streams.length>1 then streams else streams[0]
+
+	D opt,"$_=#{JSON.stringify $_}"
+
+	r=execfunc $G,sep,func,$_,0 if typeof func=='function'
+	finish r,opt
+
+
+lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 	unless getSep(sep)
-		options=endFunc
+		opt=endFunc
 		endFunc=beginFunc
 		beginFunc=func
 		func=sep
@@ -87,36 +120,47 @@ lineExec=(sep,func,beginFunc,endFunc,options,cb)=>
 	$asyncList=[]
 	$results=[]
 	$G={}
-	beginFunc $G if typeof beginFunc=='function'
 
-	readLine=require('readline').createInterface(
-		input:process.stdin
-	)
+	inputStreams=opt?.inputFiles ? [process.stdin]
+	D opt,JSON.stringify opt
+	D opt,"input streams:#{if x==process.stdin then "stdin" else x for x in inputStreams}"
 
-	readLine.on 'line',($_)=>
-		r=cb $G,sep,func,$_
+	rl=require 'readline'
+	readLines=[]
 
-		if typeof r?.then=='function'
-			$asyncList.push ((cb)->
-				this.then (ret)->cb null,ret
-					.catch (e)->cb  e,null
-			).bind(r)
+	try
+		streams=for inputStream in inputStreams
+			if typeof inputStream == 'object'
+				inputStream
+			else
+				fs.createReadStream inputStream
 
-		else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,object). parameters can be passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
-			$asyncList.push r
+		readLines=(rl.createInterface {input:inputStream} for inputStream in streams)
+	catch e
+		E e
+		E "failed to open #{e.path ? 'stream'}"
+		process.exit 1
 
-		else
-			$results.push r
+	numClosed=0
+	streamClosed=(streamId)=>
+		numClosed++
+		numOpening=readLines.length-numClosed
+		D "closed:#{numClosed} / opening:#{numOpening}"
 
+		if numOpening>0
+			return
 
-	readLine.on 'close',()=>
+		D "all streams have been closed"
 		f=($G,results)=>
+			D "executing -E $_=#{JSON.stringify results}"
 			r=null
 			r=endFunc($G,results) if typeof endFunc=='function'
-			finish r,options
+			finish r,opt
 
 		if $asyncList.length>0
-			$async.parallelLimit($asyncList,options?.numExecute ? 1)
+			D opt,"waiting asyncList: #{$asyncList.length} items / parallel: #{opt?.numExecute ? 1}"
+
+			$async.parallelLimit($asyncList,opt?.numExecute ? 1)
 			.then (rs)=>
 				f($G,rs)
 
@@ -128,6 +172,39 @@ lineExec=(sep,func,beginFunc,endFunc,options,cb)=>
 		else
 			f($G,$results)
 
-exports.ne=(sep,func,beginFunc,endFunc,options)=>
-	lineExec sep,func,beginFunc,endFunc,options,execfunc
+	lineCallback=(streamId,$_)->
+		D opt,"stream:#{streamId} -e: $_=\"#{$_}\""
+		r=cb $G,sep,func,$_,streamId
+
+		if typeof r?.then=='function'
+			D opt,"-e returns Promise.add it to queue."
+			$asyncList.push ((cb)->
+				this.then (ret)->cb null,ret
+					.catch (e)->cb  e,null
+			).bind(r)
+
+		else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,object). parameters can be passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
+			D opt,"-e returns Async function .add it to queue."
+			$asyncList.push r
+
+		else
+			D opt,"-e returns #{(JSON.stringify r) ? 'null'}"
+			$results.push r
+
+	closeCallback=(streamId)->
+		D opt,"stream:#{streamId} closed"
+		streamClosed streamId
+
+
+	streamId=0
+	for readLine in readLines
+		readLine.on 'line',lineCallback.bind null,streamId
+		readLine.on 'close',closeCallback.bind null,streamId
+		streamId++
+
+	D opt,"executing:-B program"
+	beginFunc $G if typeof beginFunc=='function'
+
+exports.ne=(sep,func,beginFunc,endFunc,opt)=>
+	lineExec sep,func,beginFunc,endFunc,opt,execfunc
 

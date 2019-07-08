@@ -1,5 +1,13 @@
 #!/usr/bin/env bats
 
+setup() {
+	echo -e "hello,1\nnorlworld,2"  >test1.txt
+	echo -e "norl,3\nhello,4"  >test2.txt
+	echo -e '{"a":1,"b":2}' >test1.json
+	echo -e '{"c":1,"b":4}' >test2.json
+}
+
+
 @test "e" {
 	t="Hello World"
 	r=$(echo $t|dist/cli.js -e 'console.log($_)')
@@ -148,3 +156,26 @@
 	a=$(dist/cli.js -Pre 'return ((g,cb)=>setTimeout(()=>cb(null,"hoge"),1000)).bind(null,$_);')
 	test "$a" == "hoge"
 }
+
+@test "MultiStream -e" {
+	a=$(dist/cli.js test1.txt test2.txt -Pe '$_=`stream0:${$_[0].length} stream1:${$_[1].length}`')
+	test "$a" == "stream0:20 stream1:15"
+}
+
+@test "MultiStream -ae" {
+	a=$(dist/cli.js test1.txt test2.txt -aPe '$_=`${$F[0][1]} ${$F[1][0]}`')
+	test "$a" == "norlworld,2 norl,3"
+}
+
+@test "MultiStream -je" {
+	a=$(dist/cli.js test1.json test2.json -jJe '$_=_.merge($_[0],$_[1])')
+	test "$(echo $a)" == '{ "a": 1, "b": 4, "c": 1 }'
+}
+
+@test "MultiStream -pe" {
+	a=$(dist/cli.js test1.txt test2.txt -ape '$_=$S+" "+$F[1]')
+	test "$(echo $a)" == '0 1 0 2 1 3 1 4'
+}
+
+
+
