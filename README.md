@@ -6,27 +6,27 @@ one liners node.js, helps to write one line stdin filter program by node.js Java
 ## Example
 
 ```
-	$ cat test.txt
-	Hello World
-	Goodnight World
+$ cat test.txt
+Hello World
+Goodnight World
 
-	$ cat test.txt | norl -pe '$_=$_.replace(/World/,"Norl")'
-	Hello Norl
-	Goodnight Norl
+$ cat test.txt | norl -pe '$_=$_.replace(/World/,"Norl")'
+Hello Norl
+Goodnight Norl
 
-	# -p: execute -e <program> line by line. $_: input/output line from/to stdin/out
+# -p: execute -e <program> line by line. $_: input/output line from/to stdin/out
 
-	$ cat test2.txt
-	Apple,12
-	Google,3
+$ cat test2.txt
+Apple,12
+Google,3
 
-	$ cat test2.txt | norl -B 'total=0' -ane 'total+=parseInt($F[1])' -PE '$_=`total:${total}`'
-	total:15
+$ cat test2.txt | norl -B 'total=0' -ane 'total+=parseInt($F[1])' -PE '$_=`total:${total}`'
+total:15
 
-	# -n: same as p but doesn't print at -e <program> line by line
-	# -a: $F=$_.split(',') before -e <program>
-	# -B <program> / -E <program>: execute <program> before(-B) / after(-E) stdin processing of -e <program>
-	# -P print $_ at end of stream
+# -n: same as p but doesn't print at -e <program> line by line
+# -a: $F=$_.split(',') before -e <program>
+# -B <program> / -E <program>: execute <program> before(-B) / after(-E) stdin processing of -e <program>
+# -P print $_ at end of stream
 ```
 
 ## Install
@@ -35,7 +35,7 @@ one liners node.js, helps to write one line stdin filter program by node.js Java
 npm install -g norl
 ```
 
-## More Examples
+## Features
 
 you must enclose your program by quote ' or ". if you want to use single quote(') inside '. use bash single quote escape like ( norl -re $'console.log("\'")' )
 
@@ -195,7 +195,25 @@ you can easy to create filter program with 'test' or 'grep'. All data(code/stdin
 
 if you want to use single quote(') inside '. use bash single quote escape mode ($'..') like ( norl -re $'console.log("\'")' )
 
-## Usage
+## Demo
+
+### wc -l (counts lines)
+
+```
+cat README.md | wc -l | sed 's/^ *//'
+#wc -l prints unnesessary white space
+
+cat README.md | norl -aPe '$_=$F.length'
+#norl version
+```
+
+## JSON Pretty Print
+
+```
+cat package.json|norl -jJ
+```
+
+## Detail Usage
 
 ```
 @PARTPIPE@|dist/cli.js -h
