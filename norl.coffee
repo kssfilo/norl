@@ -53,7 +53,7 @@ finish=(r,options)=>
 				process.exit 0
 	else
 		eval(options.finalEval) if options?.finalEval?
-		process.exit 0
+		process.exit if (typeof r == 'number') then r else 0
 
 exports.r=(func,options)=>
 	$G={}
