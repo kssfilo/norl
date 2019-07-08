@@ -97,33 +97,33 @@ switch $command
 		console.log """
 		## command line
 
-			norl <options> -e '<program>'  [-B '<program'>] [-E '<program>'] [files...]
+		    norl <options> -e '<program>'  [-B '<program'>] [-E '<program>'] [files...]
 		
-			Copyright(c) 2019,kssfilo(https://kanasys.com/gtech/)
-			one-liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise/Async/MultiStream feature(CLI tool/module)
+		    Copyright(c) 2019,kssfilo(https://kanasys.com/gtech/)
+		    one-liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise/Async/MultiStream feature(CLI tool/module)
 
 		## Options
 		
-			-h/-?:this help
-			-d:debug mode
-			-e <program>:one line program (without -n -p option, $_ contains whole data from stdin)
-			-n:call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)
-			-p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null
-			-a:autosplit mode (splits $_ into $F) default split() pattern is ','(with -n -p) or \\n(without -n -p)
-			-F /pattern/ :split() pattern for -a switch (you can use string instead of regex.dont need -a when -F option is specified)
-			-B <program>:(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p).
-			-E <program>:(End) additional program which runs AFTER -e program.for finalizing(works with -n -p).
-			-j JSON.parse stdin then stores into $_ (can't use with -n -p)
-			-J JSON.stringfy($_,null,"\\t") and print it at end of stream after -E program (you can also print Promise/Async.js result.see example)
-			-P console.log($_) at end of stream after -E program (you can also print Promise/Async.js callback result.see example)
-			-C [<separator>]: CSV like output. works with -p. $_=$F.join(<separator>) before console.log($_). use with -a to manipulate CSV like files
-			-c same as -C but use default ',' separator.useful for joining options like -cape <program>
-			-X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line
-			-x same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. 
-			-L [<number>] : by default, shell commands will be executed sequencial. with -L option, commands will run parallel. same effect for async.js style function but Promise().
-			-M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
-			-m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
-			-r Just run -e <program>. stdin and files will be ignored.
+		    -h/-?:this help
+		    -d:debug mode
+		    -e <program>:one line program (without -n -p option, $_ contains whole data from stdin)
+		    -n:call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)
+		    -p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null
+		    -a:autosplit mode (splits $_ into $F) default split() pattern is ','(with -n -p) or \\n(without -n -p)
+		    -F /pattern/ :split() pattern for -a switch (you can use string instead of regex.dont need -a when -F option is specified)
+		    -B <program>:(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p).
+		    -E <program>:(End) additional program which runs AFTER -e program.for finalizing(works with -n -p).
+		    -j JSON.parse stdin then stores into $_ (can't use with -n -p)
+		    -J JSON.stringfy($_,null,"\\t") and print it at end of stream after -E program (you can also print Promise/Async.js result.see example)
+		    -P console.log($_) at end of stream after -E program (you can also print Promise/Async.js callback result.see example)
+		    -C [<separator>]: CSV like output. works with -p. $_=$F.join(<separator>) before console.log($_). use with -a to manipulate CSV like files
+		    -c same as -C but use default ',' separator.useful for joining options like -cape <program>
+		    -X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line
+		    -x same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. 
+		    -L [<number>] : by default, shell commands will be executed sequencial. with -L option, commands will run parallel. same effect for async.js style function but Promise().
+		    -M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
+		    -m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
+		    -r Just run -e <program>. stdin and files will be ignored.
 
 		## Program and Namespace
 
@@ -141,195 +141,196 @@ switch $command
 			
 		### 1. Perl/Ruby like stdin processing(-e / -ne / -pe / -a)
 
-			$ cat test.txt
-			Hello World
-			Goodnight World
+		    $ cat test.txt
+		    Hello World
+		    Goodnight World
 
-			$ cat test.txt | norl -pe '$_=$_.replace(/World/,"Norl")'
-			Hello Norl 
-			Goodnight Norl
+		    $ cat test.txt | norl -pe '$_=$_.replace(/World/,"Norl")'
+		    Hello Norl 
+		    Goodnight Norl
 
 		-e <program> : program code. without (-n/-p), -e program is called only one time. $_ contains whole stdin data.
 
-			$ cat test.txt|norl -pe 'm=$_.match(/^Hello/);$_=m?$_:"---"'
-			Hello World
-			---
+		    $ cat test.txt|norl -pe 'm=$_.match(/^Hello/);$_=m?$_:"---"'
+		    Hello World
+		    ---
 		
 		-pe <program> : execute program line by line.then print $_ after each -e <program> by console.log($_)
 
-			$ cat test2.txt
-			Apple,12
-			Google,3
+		    $ cat test2.txt
+		    Apple,12
+		    Google,3
 
-			$ cat test2.txt | norl -B 'total=0' -ane 'total+=parseInt($F[1])' -PE '$_=`total:${total}`'
-			total:15
+		    $ cat test2.txt | norl -B 'total=0' -ane 'total+=parseInt($F[1])' -PE '$_=`total:${total}`'
+		    total:15
 
 		-ne <program>: same as -pe but doesn't print $_ each line.
 
 		-B <program>/-E <program>: executs <program> at begining(-B) / end(-E) of stream. works with -n/-p option.
-			
-			$ cat test2.txt|norl -a -pe '$_=$F[1]'
-			12
-			30
+		    
+		    $ cat test2.txt|norl -a -pe '$_=$F[1]'
+		    12
+		    30
 
 		-a option: automatic split. $F=$_.split(',') before -e <program> , you can change separator by -F option
-			
-			
+		    
+		    
 		### 2. Automatic JSON.parse
-			
-			$ cat test3.json
-			{
-				"s":"Hello World"
-			}
-			
-			$ cat test3.json|norl -j -e 'console.log($_.s)'
-			Hello World
-			
+		    
+		    $ cat test3.json
+		    {
+		    	"s":"Hello World"
+		    }
+		    
+		    $ cat test3.json|norl -j -e 'console.log($_.s)'
+		    Hello World
+		    
 		-j option: assume stdin is JSON. $_=JSON.parse(stdin) before -e <program>. only works without (-n / -p)
-			
+		    
 		### 3. Automatic Print (Text/JSON/CSV) (-P / -J / -c)
-			
-			$ cat test3.json|norl -je '$_=$_.s'
-			Hello World (shorthand of above example)
-			
+		    
+		    $ cat test3.json|norl -je '$_=$_.s'
+		    Hello World (shorthand of above example)
+		    
 		-P option: you can omit console.log($_) by -P option. just assign result into $_ at -e program (without -n) or -E program(with -n) 
 		
 		tips: every $_ of -ne/-pe program result is stored into an Array then pass it to -E <program> via $_. you can check -ne results by just add -P option. redirecting to stderr (-E 'console.error($_') is useful for debugging -ne program.
-			
-			$ cat test2.txt
-			Apple,12
-			Google,3
+		    
+		    $ cat test2.txt
+		    Apple,12
+		    Google,3
 
-			$ cat test2.txt|norl  -B 'count=0' -ane 'count+=Number($F[1])' -JE '$_={total:count}'
-			{"total":15}
+		    $ cat test2.txt|norl  -B 'count=0' -ane 'count+=Number($F[1])' -JE '$_={total:count}'
+		    {"total":15}
 
 		-J option: same as -P but prints JSON. you must assign any object to $_ in -e(without -n) or -E(with -n) 
 
-			$ cat test.txt
-			Hello World
-			Goodnight World
-			
-			$ cat test.txt|norl -cpe '$F[0]=$_.length;$F[1]=$_'
-			11 chars,Hello World
-			15 chars,Goodnight World
+		    $ cat test.txt
+		    Hello World
+		    Goodnight World
+		    
+		    $ cat test.txt|norl -cpe '$F[0]=$_.length;$F[1]=$_'
+		    11 chars,Hello World
+		    15 chars,Goodnight World
 		
 		-c option: CSV like output. Joins $F array by $_=$F.join(',') after each -pe <program>. works only with -p. you can change separator by -C
-			
+		    
 		### 4. Super Short JSON Handling (combine -J + -j)
 
-			$ cat test.json
-			{ "apple": 12, "google": 3 }
-			
-			$ cat test.json | norl -jJe '$_.google+=1'
-			{ "apple": 12, "google": 4 }
+		    $ cat test.json
+		    { "apple": 12, "google": 3 }
+		    
+		    $ cat test.json | norl -jJe '$_.google+=1'
+		    { "apple": 12, "google": 4 }
 		
 		combining -j +J option: easy to modify JSON file.
 
-			$ cat test2.json
-			{ "status":{ "apple": 12, "google": 3 }}
+		    $ cat test2.json
+		    { "status":{ "apple": 12, "google": 3 }}
 
-			$ cat test2.json | norl -jJe '$_=$_.status'
-			{ "apple": 12, "google": 3 }
-			
+		    $ cat test2.json | norl -jJe '$_=$_.status'
+		    { "apple": 12, "google": 3 }
+		    
 		you can assign a part of input JSON to $_. for extracting some properties. 
 		
 		builtin lodash (_) helps to manipulate objects easier. you can combine multiple JSON files by muti input mode(see another section)
 
 		### 5. Super Short CSV Handling (combine -a + c)
-			$ cat test.txt
-			Apple,12
-			Google,3
-			
-			$ cat test.txt | norl -cape '$F[1]=Number($F[1])+1'
-			Apple,13
-			Google,4
+		
+		    $ cat test.txt
+		    Apple,12
+		    Google,3
+		    
+		    $ cat test.txt | norl -cape '$F[1]=Number($F[1])+1'
+		    Apple,13
+		    Google,4
 		
 		combining -c +a option: you can modify CSV columns by just rewrite $F[n] fields
 
-			$ cat test2.txt
-			partpipe,mars,010-1234-5678,2015
-			norl,moon,010-9876-5432,2019
-			
-			cat test2.txt | norl -cape '$F=[$F[0],$F[2]]'
-			partpipe,010-1234-5678
-			norl,010-9876,5432
+		    $ cat test2.txt
+		    partpipe,mars,010-1234-5678,2015
+		    norl,moon,010-9876-5432,2019
+		    
+		    cat test2.txt | norl -cape '$F=[$F[0],$F[2]]'
+		    partpipe,010-1234-5678
+		    norl,010-9876,5432
 		
 		-c + -a option: you can reassign new array into $F, useful to filter columns like this example.
 
 		### 6. Modules
-			
-			$ export NORL_MODULES="mathjs fs"
-			$ echo -e "1+2\\n3*4"|norl -pe '$_=mathjs.evaluate($_)' 
-			3
-			12
-			
+		    
+		    $ export NORL_MODULES="mathjs fs"
+		    $ echo -e "1+2\\n3*4"|norl -pe '$_=mathjs.evaluate($_)' 
+		    3
+		    12
+		    
 		you can preload modules by NORL_MODULES environment variable. 
 
 		tips: set NODE_PATH if you want to use global (npm install -g) module.  or example, $ export NODE_PATH=$(npm root -g))
 		
 		variable name is basically same as module name but '-' and '.' will be '_'.for example, request_promise=require("request-promise")
-			
-			$ echo -e "1+2\\n3*4"|norl -m 'mathjs fs' -pe '$_=mathjs.evaluate($_)' 
-			3
-			12
+		    
+		    $ echo -e "1+2\\n3*4"|norl -m 'mathjs fs' -pe '$_=mathjs.evaluate($_)' 
+		    3
+		    12
 
 		-m option: same as NORL_MODULES. you can specify additional modules by -m option separated by space
-			
+		    
 		by default. only lodash module is pre-loaded into '_' 
 
 		### 7. Promise
-			
-			$ export NORL_MODULES="request-promise"
-			$ echo -e "https://www.google.com/robots.txt" |norl -Pe 'return request_promise($_)'
-			User-agent: ..... 
+		    
+		    $ export NORL_MODULES="request-promise"
+		    $ echo -e "https://www.google.com/robots.txt" |norl -Pe 'return request_promise($_)'
+		    User-agent: ..... 
 		
 		you can return promise object from -e or -E. norl waits result and print it if -P or -J is specified or simply drop it without -P/-J
-			$ cat urls.txt
-			https://www.google.com/robots.txt
-			nhttps://www.yahoo.com/robots.txt
+		    $ cat urls.txt
+		    https://www.google.com/robots.txt
+		    nhttps://www.yahoo.com/robots.txt
 
-			$ export NORL_MODULES="request-promise fs"
-			$ cat urls.txt | norl -ne 'return request_promise($_)'  -E 'for(i in $_){fs.writeFileSync(`robots-${i}.txt`,$_[i]) }'
-			robots-0.txt:contains google.com's robots.txt
-			robots-1.txt:contains yahoo.com's robots.txt
+		    $ export NORL_MODULES="request-promise fs"
+		    $ cat urls.txt | norl -ne 'return request_promise($_)'  -E 'for(i in $_){fs.writeFileSync(`robots-${i}.txt`,$_[i]) }'
+		    robots-0.txt:contains google.com's robots.txt
+		    robots-1.txt:contains yahoo.com's robots.txt
 
 		 if Promise is returned by each -ne program, norl collects it and Promise.all() to wait before -E program then pass the result array into -E program via $_
 
 		### 8. async.js 
-			
-			$ cat waits.txt
-			A,5
-			B,1
-			C,3
+		    
+		    $ cat waits.txt
+		    A,5
+		    B,1
+		    C,3
 
-			$ cat waits.txt | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));'
-			A:5secs
-			B:1secs (<-after 5secs from 1st line)
-			C:3secs (<-after 1secs from 2nd line)
-			
+		    $ cat waits.txt | norl -ane 'return ((name,timeout,cb)=>{console.log(`${name}:${timeout}secs`);setTimeout(()=>{cb(null,name+":OK");},timeout*1000)}).bind(null,$F[0],Number($F[1]));'
+		    A:5secs
+		    B:1secs (<-after 5secs from 1st line)
+		    C:3secs (<-after 1secs from 2nd line)
+		    
 		returned function from each -ne program will be queued and waits for all callbacks before running -E program.  the function must be async.js style like '(cb)=>cb(null,"OK")'  
 
 		you can pass parameters via .bind() like this example. by default, execution is sequential. you can control it by -L [<number>] option. try to append -L 2 to the example above to check behavior. 2 is a number of executables in parallel. if you omit <number>, 16 will be used.
 
 		### 9. Shell Execution
-			
-			$ cat test.txt
-			Hello,World
-			Goodnight,World"
+		    
+		    $ cat test.txt
+		    Hello,World
+		    Goodnight,World"
 
-			$ cat test.txt | norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
-			HellO
-			GOOdnight 
+		    $ cat test.txt | norl -axpe '$_=`echo ${$F[0]}|tr "o" "O"`'
+		    HellO
+		    GOOdnight 
 
 		-x option: execute $_ as shell command after each -pe <program> then print stdout of the command, works only with -p. you can use norl like xargs
 
 		note that don't forget to assign $_. -x option executes $_ string not your -pe program itself.
 
 		tips: process stops at error condition ($?!=0) at LAST command. you can ignore error code by appending '|cat' at end of shell command like $_='wc -l noexists | cat' 
-			
-			$ echo -e "README.md\\nnotexists.txt\\npackage.json"|norl -Xpe '$_=`test -e ${$_}`'
-			README.md
-			package.json
+		    
+		    $ echo -e "README.md\\nnotexists.txt\\npackage.json"|norl -Xpe '$_=`test -e ${$_}`'
+		    README.md
+		    package.json
 
 		-X option: same as x but pass-through input line instead of printing stdout of shell command. checks $? result code each execution then print input line if $?==0. unlike -x,  -X DOESNT stop execution when $!=0 
 
@@ -339,16 +340,16 @@ switch $command
 
 		### 10. Result Code
 
-			$ if cat README.md|norl -ae 'return $F.length<15?0:1';then echo "README.md is too short";fi
-			README.md is too short  (if number of lines of README.md are under 15)
+		    $ if cat README.md|norl -ae 'return $F.length<15?0:1';then echo "README.md is too short";fi
+		    README.md is too short  (if number of lines of README.md are under 15)
 
 		if you return a number at the final (-e or -E) program. the number will be norl's shell result code ($?). You can use norl like 'test' command inside bash if.
 
 		### 11. Multi-Input Mode
-			
-			$ norl -jJe '$_=_.merge($_[0],$_[1])' test1.json test2.json
-			{ "a": 1, "b": 4, "c": 1 }
-			# merging 2 json files (using buildin lodash(_))
+		    
+		    $ norl -jJe '$_=_.merge($_[0],$_[1])' test1.json test2.json
+		    { "a": 1, "b": 4, "c": 1 }
+		    # merging 2 json files (using buildin lodash(_))
 
 		specifying file instead of stdin is ok. if the number of file is 1. norl treats this file as same as stdin.
 		but you specify 2 or more files on command line, norl will be 'multi-input mode'
@@ -357,11 +358,11 @@ switch $command
 
 		auto parsing (-J / -a) are also working on multi-input mode. with -J,  $_=[parsed1stjson,parsed2ndjson...]. with -a,$F=[splited1stfile,splited2ndfile...]
 
-			$ norl -pe '$_=`stream:${$S} ${$_}`' file1.txt file2.txt
-			stream:0 file1's 1st line
-			stream:0 file1's 2nd line
-			stream:1 file2's 1nd line
-			stream:2 file2's 2nd line
+		    $ norl -pe '$_=`stream:${$S} ${$_}`' file1.txt file2.txt
+		    stream:0 file1's 1st line
+		    stream:0 file1's 2nd line
+		    stream:1 file2's 1nd line
+		    stream:2 file2's 2nd line
 
 		with (-p / -n), same -e program will be called with every file's line. -e program is able to know the file number (0,1,..) by special value $S. 
 
@@ -371,9 +372,9 @@ switch $command
 
 		this means you can rewrite console.log/console.error by $P / $E  e.g.
 		
-			$ echo "Hello" | norl -e 'console.log($_);console.error("warning")'
-			#can be
-			$ echo "Hello" | norl -e '$P($_);$E("warning")'
+		    $ echo "Hello" | norl -e 'console.log($_);console.error("warning")'
+		    #can be
+		    $ echo "Hello" | norl -e '$P($_);$E("warning")'
 
 		"""
 	else
