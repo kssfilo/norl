@@ -8,6 +8,16 @@ D=(opt,str)=>
 $async=require("async")
 fs=require 'fs'
 
+exitProcess=(opt,r)=>
+	D opt,"exitprocess:#{r}"
+	if opt?.exitCallback?
+		D opt,"calling exitCallback:"
+		opt.exitCallback (if r==0 then null else r),{code:r,opt:opt}
+	else
+		D opt,"there are no exitCallback.exit process."
+		process.exit r
+	r
+
 getSepRegex=(regOrStr)=>
 	m=regOrStr.match /^\/(.+)\/([im]?)$/
 	if m
@@ -47,17 +57,18 @@ execfunc=($G,sep,func,$_,streamId)=>
 #jshint evil:true 
 
 finish=(r,opt)=>
-	D opt,"all programs have been completed.finalizing."
+	D opt,"all programs have been completed in this process.finalizing."
 
 	if typeof r?.then=='function'
 		D opt,"result is Promise. waiting complete."
 		r.then ($_)=>
 			D opt,"Promise finished."
 			eval(opt.finalEval) if opt?.finalEval?
-			process.exit 0
+			return exitProcess opt,0
+
 		.catch (e)=>
 			E "#{JSON.stringify(e)}"
-			process.exit 1
+			return exitProcess opt,1
 
 	else if typeof r=='function'
 		D opt,"result is async function. waiting complete."
@@ -65,14 +76,14 @@ finish=(r,opt)=>
 			D opt,"async function finished."
 			if e
 				E "#{JSON.stringify(e)}"
-				process.exit 1
+				return exitProcess opt,1
 			else
 				eval(opt.finalEval) if opt?.finalEval?
-				process.exit 0
+				return exitProcess opt,0
 	else
-		D opt,"result: #{JSON.stringify r}"
+		D opt,"result: #{if r? then JSON.stringify r else 'null'}"
 		eval(opt.finalEval) if opt?.finalEval?
-		process.exit if (typeof r == 'number') then r else 0
+		return exitProcess opt,(if (typeof r == 'number') then r else 0)
 
 exports.r=(func,opt)=>
 	$G={}
@@ -95,7 +106,7 @@ exports.e=(sep,func,opt)=>
 		streams=(fs.readFileSync(inputStream, 'utf8') for inputStream in inputStreams)
 	catch e
 		E "failed to open #{e.path ? 'stream'}"
-		process.exit 1
+		return exitProcess opt,1
 
 	$G={}
 
@@ -133,17 +144,20 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 	readLines=[]
 
 	try
+		fs.statSync(inputStream) for inputStream in inputStreams when typeof inputStream is 'string'
+
 		streams=for inputStream in inputStreams
 			if typeof inputStream == 'object'
 				inputStream
 			else
 				fs.createReadStream inputStream
 
+
 		readLines=(rl.createInterface {input:inputStream} for inputStream in streams)
 	catch e
 		#E e
 		E "failed to open #{e.path ? 'stream'}"
-		process.exit 1
+		return exitProcess opt,1
 
 	numClosed=0
 	streamClosed=(streamId)=>
@@ -172,7 +186,7 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 				if e.cmd? && e.code?
 					E "stopped(#{e.code}):command( #{e.cmd} )"
 				else
-					E "#{JSON.stringify(e)}"
+					E "unknown error:#{JSON.stringify(e)}"
 		else
 			f($G,$results)
 

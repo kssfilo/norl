@@ -38,14 +38,6 @@ total:15
 npm install -g norl
 ```
 
-@PARTPIPE@|dist/cli.js -h
-
-You can see detail usage on npmjs.com or norl -h 
-
-- [Documentation(npmjs)](https://www.npmjs.com/package/norl)
-
-@PARTPIPE@
-
 ## Demo
 
 ### wc -l (counting lines)
@@ -71,6 +63,15 @@ $ cat test.json|norl -jJ
 }
 ```
 
+### Embed version string to muliple files(like sed + bash for)
+
+```
+$ norl -Pe '$_=$_.replace(/_VERSION_/g,"1.2.0")' -O destDir/  package.json README.md LICENSE.txt
+destDir/package.json
+destDir/README.json
+destDir/LICENSE.json  (All files "_VERSION_" strings were replaced by 1.2.0)
+```
+
 ### unix join (sort is not necessary :)
 
 ```
@@ -86,6 +87,14 @@ $ norl address.csv tell.csv a.csv tel.csv -B 'res={};' -ane '_.set(res,[$F[0],$S
 norl,010-342-234,moon
 partpipe,010-122-444,mars
 ```
+
+@PARTPIPE@|dist/cli.js -h| perl -pe 'if(!m/^    /){s/_/\\_/g}'
+
+You can see detail usage on npmjs.com or norl -h 
+
+- [Documentation(npmjs)](https://www.npmjs.com/package/norl)
+
+@PARTPIPE@
 
 ## Use as Module
 
@@ -121,6 +130,7 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 
 ## Change Log
 
+- 2.3.x: added Multi-Input-Multi-Out mode (-O)
 - 2.2.x: supports file input and multi-input mode.
 - 2.1.x: controling process.exit(n) code by returning number at final function.(-P -J will be cancelled)
 - 2.0.x: -x/-X option, async.js style callback support. -L option

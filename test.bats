@@ -5,8 +5,13 @@ setup() {
 	echo -e "norl,3\nhello,4"  >test2.txt
 	echo -e '{"a":1,"b":2}' >test1.json
 	echo -e '{"c":1,"b":4}' >test2.json
+	mkdir -p test.dir
 }
 
+teardown() {
+	rm test1.txt test2.txt test1.json test2.json 
+	rm -r test.dir
+}
 
 @test "e" {
 	t="Hello World"
@@ -177,5 +182,21 @@ setup() {
 	test "$(echo $a)" == '0 1 0 2 1 3 1 4'
 }
 
+@test "MIMO -Pe" {
+	dist/cli.js test1.txt test2.txt -cape '$F[1]++' -O test.dir
+	test "$(cat test.dir/test1.txt test.dir/test2.txt|tr "\n" "x")" == "hello,2xnorlworld,3xnorl,4xhello,5x"
+}
 
+@test "MIMO -Pe Promise" {
+	dist/cli.js test1.txt test2.txt -ne 'return Promise.resolve($_.replace(/,/g,"!"))' -E 'console.log($_.join("X"))' -O test.dir
+	test "$(cat test.dir/test1.txt test.dir/test2.txt|tr "\n" "x")" == "hello!1Xnorlworld!2xnorl!3Xhello!4x"
+}
 
+@test "MIMO -ne Promise+console.log" {
+	dist/cli.js test1.txt test2.txt -ne 'return Promise.resolve($_.replace(/,/g,"_"))' -E 'console.log($_.join("X"));' -O test.dir
+	test "$(cat test.dir/test1.txt test.dir/test2.txt|tr "\n" "x")" == "hello_1Xnorlworld_2xnorl_3Xhello_4x"
+}
+
+@test "MIMO not exists" {
+	test "$(dist/cli.js test1.txt test2.txt test3.txt -cape '$F[1]++' -O test.dir 2>&1)" == "failed to open test3.txt"
+}

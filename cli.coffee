@@ -1,6 +1,9 @@
 #!/usr/bin/env coffee
 $opt=require '@kssfilo/getopt'
 _=require 'lodash'
+fs=require 'fs'
+path=require 'path'
+$async=require 'async'
 
 $command='e'
 $isDebugMode=false
@@ -13,6 +16,7 @@ $additionalModules=''
 $outputSeparator=null
 $executeMode=null
 $numExecute=1
+$targetDir=null
 
 $autoSplit=false
 $splitSep=null
@@ -25,6 +29,8 @@ $P=console.log
 $E=console.error
 $D=(str)=>
 	$E "norl:"+str if $isDebugMode
+
+
 
 $optUsages=
 	h:"help"
@@ -47,11 +53,12 @@ $optUsages=
 	M:"suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)"
 	m:["modules","adds module list to NORL_MODULES.for example, -m 'fs request'"]
 	r:"Just run -e <program>. stdin and files will be ignored."
+	O:["dir","output directory.if you specify this option,and mutiple files are in arguments. writes output to <dir> with same filenames.see Multi-Output mode section."]
 
 
 try
 	#$opt.setopt 'L::cxXC::m:rMPjJpdh?ne:aF:B:E:'
-	$opt.setopt 'h?de:npaF:B:E:jJPC::cXxL::Mm:r'
+	$opt.setopt 'h?de:npaF:B:E:jJPC::cXxL::Mm:rO:'
 catch e
 	switch e.type
 		when 'unknown'
@@ -104,21 +111,60 @@ $opt.getopt (o,p)->
 			$executeMode='result'
 		when 'X'
 			$executeMode='passthrough'
+		when 'O'
+			$targetDir=p[0]
 
 
 $modules=((unless $ignoreNorlModules then (process.env['NORL_MODULES'] ? '') else '') + " #{$additionalModules ? ''}").replace(/^ +| +$/g,'').split(/ +/).filter((i)=>i!='') ? []
 
-$D "Command: #{$command}"
-$D "Separator: #{$splitSep ? 'default'}"
-$D "Auto Split: #{$autoSplit}"
+$inputFiles=null
+if $opt.params()?.length>0
+	$inputFiles=$opt.params()
+
+$D "==starting norl"
+$D "-options"
+$D "command: #{$command}"
+$D "separator: #{$splitSep ? 'default'}"
+$D "auto Split: #{$autoSplit}"
+$D "target Dir: #{$targetDir ? ''}"
 $D "ENV: #{$modules}"
+$D "input files: #{$inputFiles ? 'stdin'}"
+$D "-------"
+
+$D "sanity checking.."
+try
+	if $splitSep==JSON and $command in ['pe','ne']
+		throw '-j option is not able to use with -n/-p option'
+
+	#if $autoPrint and $command in ['pe','ne'] and !$endProgram
+	#	throw '-P option needs -E <program> when -n/-p option is specified'
+
+	if !($command in ['pe','ne']) and ($beginProgram? or $endProgram)
+		throw '-B/-E options works with -n/-p option'
+
+	if $outputSeparator and $command != 'pe'
+		throw '-C option works with -p'
+
+	if $executeMode and $command != 'pe'
+		throw '-x/-X option works with -p'
+
+	if $targetDir? and  !(fs.statSync($targetDir)?.isDirectory())
+		throw "target dir #{$targetDir} not found"
+	
+	if $targetDir? and !$inputFiles?
+		throw "-O needs one or more input files"
+
+	$D "..OK"
+catch e
+	$E e.toString()
+	process.exit 1
 
 switch $command
 	when 'usage'
 		console.log """
-		## command line
+		## Command line
 
-		    norl <options> -e '<program>'  [-B '<program'>] [-E '<program>'] [files...]
+		    norl <options> -e '<program>' [-B '<program'>] [-E '<program>'] [files...]
 		
 		    Copyright(c) 2019,kssfilo(https://kanasys.com/gtech/)
 		    one-liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise/Async/MultiStream feature(CLI tool/module)
@@ -286,6 +332,7 @@ switch $command
 		    User-agent: ..... 
 		
 		you can return promise object from -e or -E. norl waits result and print it if -P or -J is specified or simply drop it without -P/-J
+
 		    $ cat urls.txt
 		    https://www.google.com/robots.txt
 		    nhttps://www.yahoo.com/robots.txt
@@ -367,7 +414,22 @@ switch $command
 
 		with (-p / -n), same -e program will be called with every file's line. -e program is able to know the file number (0,1,..) by special value $S. 
 
-		### 12. More Tips
+		### 12. Multi-Input-Multi-Out(MIMO) mode
+
+			$ norl -Pe '$_=$_.replace(/_VERSION_/g,"1.2.0")' -O destDir/  package.json README.md LICENSE.txt
+			destDir/package.json
+			destDir/README.json
+			destDir/LICENSE.json  (All files "_VERSION_" strings were replaced by 1.2.0)
+
+		Similar to Multi-Input Mode, but MIMO mode is very simpler than Multi-Input (single out) mode.
+
+		if you specify destination dir by -O option with multiple input files.  program will be execute file by file. MIMO mode is just a short hand of 
+			
+			$ for f in file1 file2;do cat $f | norl -Pe 'program' >destdir/$f; done. 
+
+		unlike Multi-Input(single out) mode, you can't join each file. but MIMO mode is very useful when embed something to template file like example above.
+
+		### 13. More Tips
 
 		all variable names which start from $.. (execept $_ /$F / $S) and _(for lodash) are preserved. but $P and $E are predefined to console.log and console.error
 
@@ -380,20 +442,6 @@ switch $command
 		"""
 	else
 		try
-			if $splitSep==JSON and $command in ['pe','ne']
-				throw '-j option is not able to use with -n/-p option'
-
-			#if $autoPrint and $command in ['pe','ne'] and !$endProgram
-			#	throw '-P option needs -E <program> when -n/-p option is specified'
-			
-			if !($command in ['pe','ne']) and ($beginProgram? or $endProgram)
-				throw '-B/-E options works with -n/-p option'
-			
-			if $outputSeparator and $command != 'pe'
-				throw '-C option works with -p'
-
-			if $executeMode and $command != 'pe'
-				throw '-x/-X option works with -p'
 
 			$firstArg=switch
 				when $autoSplit and $splitSep? and typeof $splitSep == 'object'
@@ -402,24 +450,25 @@ switch $command
 					"#{$splitSep ? $splitSepDefaults[$command]}"
 				else
 					""
+			$D "autosplit:#{if $firstArg!="" then 'enabled' else 'disabled'}"
 
 			#$lineName=if $autoSplit and $splitSep !=JSON then "$_,$F" else '$_'
-
+			
 			#jshint evil:true
 			$beginFunc=null
 			if $beginProgram?
 				$prog="(function($G){#{$beginProgram}})"
-				$D "begincode: #{$prog}"
+				$D "-B code: #{$prog}"
 				$beginFunc=eval $prog
-
+				
 			$endFunc=null
 			if $endProgram?
 				$prog="(function($G,$_){#{$endProgram}#{$autoPrint ? ''}})"
-				$D "endcode: #{$prog}"
+				$D "-E code: #{$prog}"
 				$endFunc=eval $prog
 			else if $autoPrint
 				$prog="(function($G,$_){#{$autoPrint}})"
-				$D "endcode: #{$prog}"
+				$D "-E code: #{$prog}"
 				$endFunc=eval $prog
 
 			$afterProgram=switch
@@ -436,18 +485,21 @@ switch $command
 				else
 					';return $_;'
 
+			$D "internal final code:#{$afterProgram}"
+
 			$beforeProgram=switch
 				when $command=='pe' and $executeMode=='passthrough'
 					"$_originalLine=$_;"
 				else
 					''
+			$D "internal first code:#{$beforeProgram}"
 			
 			$norl=require('./norl')
 			$prog="(function($G,$_,$F,$S){#{$beforeProgram}#{$program}#{$afterProgram}})"
-			$D "code: #{$prog}"
+			$D "-e code: #{$prog}"
 			$func=eval($prog)
 
-			$D "Preloading modules"
+			$D "Preloading modules.."
 
 			$D "modules:#{JSON.stringify $modules}"
 			try
@@ -460,35 +512,90 @@ switch $command
 				$E e
 				throw "Failed to load one of NORL_MOODULES [#{$modules.join(',')}]\n Check NODE_PATH and set like 'export NODE_PATH=$(npm root -g)'"
 
-			$inputFiles=null
-			if $opt.params()?.length>0
-				$inputFiles=$opt.params()
-				$D "Files: #{JSON.stringify $inputFiles}"
 
+			if !$targetDir
+				$D "-O is not specified. begin Single-in or Multi-in-Single-out mode"
 
-			$options=
-				finalEval:$autoPrint
-				numExecute:$numExecute
-				inputFiles:$inputFiles
-				isDebugMode:$isDebugMode
-				
-			switch $command
-				when 'r'
-					$norl.r $func,$options
+				$options=
+					finalEval:$autoPrint
+					numExecute:$numExecute
+					inputFiles:$inputFiles
+					isDebugMode:$isDebugMode
+					
+				switch $command
+					when 'r'
+						$norl.r $func,$options
 
-				when 'e'
-					if $autoSplit
-						$norl.e $firstArg,$func,$options
-					else
-						$norl.e $func,$options
+					when 'e'
+						if $autoSplit
+							$norl.e $firstArg,$func,$options
+						else
+							$norl.e $func,$options
 
-				when 'ne','pe'
-					if $autoSplit
-						$norl.ne $firstArg,$func,$beginFunc,$endFunc,$options
-					else
-						$norl.ne $func,$beginFunc,$endFunc,$options
+					when 'ne','pe'
+						if $autoSplit
+							$norl.ne $firstArg,$func,$beginFunc,$endFunc,$options
+						else
+							$norl.ne $func,$beginFunc,$endFunc,$options
+			else
+				$D "-O option is specified. begin Multi-in-Multi-out mode"
+
+				$numInputStreams=$inputFiles.length
+				$numExit=0
+				$numErrors=0
+
+				$async.eachSeries $inputFiles,(file,cb)=>
+
+					$targetFile=path.join($targetDir,path.basename(file))
+
+					$D "starting process for #{path.basename file}"
+					$D "hooking up stdout to #{$targetFile}"
+					$originalStdoutWrite=process.stdout.write
+					$currentTargetFile=fs.createWriteStream($targetFile)
+					process.stdout.write=$currentTargetFile.write.bind($currentTargetFile)
+					
+					exitCallback=(e,r)=>
+						$D "exit callback:e:#{e}/r:#{r?.code}/file:'#{r?.opt.inputFiles[0]}'"
+
+						$D "restore redirection to #{$targetFile} and wait for close"
+						process.stdout.write=$originalStdoutWrite
+						$currentTargetFile.end ()=>
+							$numExit++
+							$D "finished:#{$numExit} / remains:#{$inputFiles.length-$numExit}"
+							if e>0
+								$D "result code of program seems error, abort."
+								cb (e)
+							else
+								cb(null,r.code)
+
+					$D "run module..."
+					$options=
+						finalEval:$autoPrint
+						numExecute:$numExecute
+						inputFiles:[file]
+						isDebugMode:$isDebugMode
+						exitCallback:exitCallback
+						
+					switch $command
+						when 'r'
+							$norl.r $func,$options
+
+						when 'e'
+							if $autoSplit
+								$norl.e $firstArg,$func,$options
+							else
+								$norl.e $func,$options
+
+						when 'ne','pe'
+							if $autoSplit
+								$norl.ne $firstArg,$func,$beginFunc,$endFunc,$options
+							else
+								$norl.ne $func,$beginFunc,$endFunc,$options
+				,(err,result)=>
+					$D "final callback, err:#{err}, result:#{result}"
 
 		catch e
 			$E e.toString()
+			#$E e
 			process.exit 1
 
