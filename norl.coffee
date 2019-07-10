@@ -89,7 +89,7 @@ exports.e=(sep,func,opt)=>
 		sep=getSep(sep)
 
 	inputStreams=opt?.inputFiles ? ['/dev/stdin']
-	D opt,"input streams:#{inputStreams}"
+	D opt,"input streams:#{JSON.stringify inputStreams}"
 
 	try
 		streams=(fs.readFileSync(inputStream, 'utf8') for inputStream in inputStreams)
@@ -122,8 +122,12 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 	$G={}
 
 	inputStreams=opt?.inputFiles ? [process.stdin]
-	D opt,JSON.stringify opt
-	D opt,"input streams:#{if x==process.stdin then "stdin" else x for x in inputStreams}"
+	D opt,"options:"+JSON.stringify opt
+	D opt,"input streams:#{JSON.stringify ((if x==process.stdin then "stdin" else x) for x in inputStreams)}"
+
+	fromSid=(sid)=>
+		s=inputStreams[sid]
+		if x==process.stdin then "stdin" else x for x in inputStream
 
 	rl=require 'readline'
 	readLines=[]
@@ -137,7 +141,7 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 
 		readLines=(rl.createInterface {input:inputStream} for inputStream in streams)
 	catch e
-		E e
+		#E e
 		E "failed to open #{e.path ? 'stream'}"
 		process.exit 1
 
@@ -173,7 +177,7 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 			f($G,$results)
 
 	lineCallback=(streamId,$_)->
-		D opt,"stream:#{streamId} -e: $_=\"#{$_}\""
+		D opt,"stream:#{streamId}:#{fromSid streamId}: -e: $_=\"#{$_}\""
 		r=cb $G,sep,func,$_,streamId
 
 		if typeof r?.then=='function'
@@ -192,7 +196,7 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 			$results.push r
 
 	closeCallback=(streamId)->
-		D opt,"stream:#{streamId} closed"
+		D opt,"stream:#{streamId}:#{fromSid streamId}: closed"
 		streamClosed streamId
 
 

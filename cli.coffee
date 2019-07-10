@@ -1,5 +1,5 @@
 #!/usr/bin/env coffee
-$opt=require 'getopt'
+$opt=require '@kssfilo/getopt'
 _=require 'lodash'
 
 $command='e'
@@ -26,10 +26,32 @@ $E=console.error
 $D=(str)=>
 	$E "norl:"+str if $isDebugMode
 
-process.argv.shift()
+$optUsages=
+	h:"help"
+	d:"debug mode"
+	e:["program","one line program (without -n -p option, $_ contains whole data from stdin)"]
+	n:"call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)"
+	p:"assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null"
+	a:"autosplit mode (splits $_ into $F) default split() pattern is ','(with -n -p) or \\n(without -n -p)"
+	F:["/regexp/","split() pattern for -a switch (you can use string instead of regex.dont need -a when -F option is specified)"]
+	B:["program","(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p)."]
+	E:["program","(End) additional program which runs AFTER -e program.for finalizing(works with -n -p)."]
+	j:"JSON.parse stdin then stores into $_ (can't use with -n -p)"
+	J:'JSON.stringfy($_,null,"\\t") and print it at end of stream after -E program (you can also print Promise/Async.js result.see example)'
+	P:"console.log($_) at end of stream after -E program (you can also print Promise/Async.js callback result.see example)"
+	C:["sep","CSV like output. works with -p. $_=$F.join(<sep>) before console.log($_). use with -a to manipulate CSV like files"]
+	c:"same as -C but use default ',' separator.useful for joining options like -cape <program>"
+	X:"execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line"
+	x:"same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. "
+	L:["number","by default, shell commands will be executed sequencial. with -L option, commands will run parallel. same effect for async.js style function but Promise()."]
+	M:"suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)"
+	m:["modules","adds module list to NORL_MODULES.for example, -m 'fs request'"]
+	r:"Just run -e <program>. stdin and files will be ignored."
+
 
 try
-	$opt.setopt 'L::cxXC::m:rMPjJpdh?ne:aF:B:E:'
+	#$opt.setopt 'L::cxXC::m:rMPjJpdh?ne:aF:B:E:'
+	$opt.setopt 'h?de:npaF:B:E:jJPC::cXxL::Mm:r'
 catch e
 	switch e.type
 		when 'unknown'
@@ -73,7 +95,7 @@ $opt.getopt (o,p)->
 		when 'm'
 			$additionalModules=p[0]
 		when 'C'
-			$outputSeparator=p[0] ? ','
+			$outputSeparator=if p[0] =='' then ',' else p[0]
 		when 'L'
 			$numExecute=Number(p[0]) ? 16
 		when 'c'
@@ -89,7 +111,6 @@ $modules=((unless $ignoreNorlModules then (process.env['NORL_MODULES'] ? '') els
 $D "Command: #{$command}"
 $D "Separator: #{$splitSep ? 'default'}"
 $D "Auto Split: #{$autoSplit}"
-$D "Files: #{$opt.params()}"
 $D "ENV: #{$modules}"
 
 switch $command
@@ -103,28 +124,8 @@ switch $command
 		    one-liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise/Async/MultiStream feature(CLI tool/module)
 
 		## Options
-		
-		    -h/-?:this help
-		    -d:debug mode
-		    -e <program>:one line program (without -n -p option, $_ contains whole data from stdin)
-		    -n:call -e program line by line. $_ contains received line from stdin.(like perl/ruby -ne)
-		    -p:assume loop like -n but console.log($_) each line after -e <program> (like perl/ruby -pe) you can delete current line by $_=null
-		    -a:autosplit mode (splits $_ into $F) default split() pattern is ','(with -n -p) or \\n(without -n -p)
-		    -F /pattern/ :split() pattern for -a switch (you can use string instead of regex.dont need -a when -F option is specified)
-		    -B <program>:(Begin) additional program which runs BEFORE -e program.for initializing(works with -n -p).
-		    -E <program>:(End) additional program which runs AFTER -e program.for finalizing(works with -n -p).
-		    -j JSON.parse stdin then stores into $_ (can't use with -n -p)
-		    -J JSON.stringfy($_,null,"\\t") and print it at end of stream after -E program (you can also print Promise/Async.js result.see example)
-		    -P console.log($_) at end of stream after -E program (you can also print Promise/Async.js callback result.see example)
-		    -C [<separator>]: CSV like output. works with -p. $_=$F.join(<separator>) before console.log($_). use with -a to manipulate CSV like files
-		    -c same as -C but use default ',' separator.useful for joining options like -cape <program>
-		    -X execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line
-		    -x same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. 
-		    -L [<number>] : by default, shell commands will be executed sequencial. with -L option, commands will run parallel. same effect for async.js style function but Promise().
-		    -M suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)
-		    -m <modules> adds module list to NORL_MODULES.for example, -m 'fs request'
-		    -r Just run -e <program>. stdin and files will be ignored.
 
+		#{$opt.getHelp $optUsages}		
 		## Program and Namespace
 
 		you must enclose your program by single quote '. if you want to use single quote inside, use bash single quote escape mode like this ( norl -re $'console.log("\'")' )
@@ -448,7 +449,7 @@ switch $command
 
 			$D "Preloading modules"
 
-			$D $modules
+			$D "modules:#{JSON.stringify $modules}"
 			try
 				for mod in $modules
 					modval=mod.replace(/[-\.]/g,'_')
@@ -460,8 +461,10 @@ switch $command
 				throw "Failed to load one of NORL_MOODULES [#{$modules.join(',')}]\n Check NODE_PATH and set like 'export NODE_PATH=$(npm root -g)'"
 
 			$inputFiles=null
-			if $opt.params().length>0
+			if $opt.params()?.length>0
 				$inputFiles=$opt.params()
+				$D "Files: #{JSON.stringify $inputFiles}"
+
 
 			$options=
 				finalEval:$autoPrint
