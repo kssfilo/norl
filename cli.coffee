@@ -514,13 +514,21 @@ switch $command
 
 
 			if !$targetDir
-				$D "-O is not specified. begin Single-in or Multi-in-Single-out mode"
+				$D "Begin Single-in or Multi-in-Single-out mode"
+
+				exitCallback=(e,r)=>
+					$D "exit callback:e:#{e}/r:#{r?.code}"
+					$D "waiting for write buffer end"
+					process.stdout.end ()=>
+						$D "finished."
+						process.exit r.code
 
 				$options=
 					finalEval:$autoPrint
 					numExecute:$numExecute
 					inputFiles:$inputFiles
 					isDebugMode:$isDebugMode
+					exitCallback:exitCallback
 					
 				switch $command
 					when 'r'
