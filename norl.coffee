@@ -166,6 +166,10 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 
 				$async.parallelLimit($asyncList,opt?.numExecute ? 1)
 				.then (rs)=>
+					if opt.funcAfterLineAsync && rs?.length>0
+						D opt,"applying after program to async results #{JSON.stringify rs}"
+						opt.funcAfterLineAsync($G,r,r) for r in rs
+
 					f($G,rs)
 
 				.catch (e)=>

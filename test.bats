@@ -12,6 +12,17 @@ teardown() {
 	rm test1.txt test2.txt test1.json test2.json 
 	rm -r test.dir
 }
+
+@test "-pe async" {
+	r=$(echo -e "hoge\naaaa" | dist/cli.js -pe 'return (cb)=>setTimeout(()=>cb(null,$_+"HO"),100)')
+	test "$(echo $r)" == "hogeHO aaaaHO"
+}
+
+@test "-cape async" {
+	r=$(echo -e "hoge,1\naaaa,2" | dist/cli.js -cape 'return (cb)=>setTimeout(()=>cb(null,$F),100)')
+	test "$(echo $r)" == "hoge,1 aaaa,2"
+}
+
 @test "-B promise" {
 	test $(echo hoge| dist/cli.js -B 'return Promise.resolve("OK")' -pe '$_="HO"+$_') == "HOhoge"
 }
@@ -26,7 +37,6 @@ teardown() {
 	cd ..
 	test "$r" = 'norl:found.using abs path'
 }
-
 
 @test "large stream" {
 	test $(dist/cli.js -re 'i=1000000;a="";while(--i){a+="A"};console.log(a)'|dist/cli.js -P |wc -c|norl -Pe '$_=Number($_)') == "1000001"

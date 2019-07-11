@@ -337,7 +337,7 @@ switch $command
 		    $ echo -e "https://www.google.com/robots.txt" |norl -Pe 'return request_promise($_)'
 		    User-agent: ..... 
 		
-		you can return promise object from -B / -e / -E. norl waits result and print it if -P or -J is specified or simply drop it without -P/-J. result of -B function is always dropped.
+		you can return promise object from -B / -e / -E. norl waits result and print it if -P or -J is specified. result of -B function is always dropped.
 
 		    $ cat urls.txt
 		    https://www.google.com/robots.txt
@@ -348,7 +348,7 @@ switch $command
 		    robots-0.txt:contains google.com's robots.txt
 		    robots-1.txt:contains yahoo.com's robots.txt
 
-		 if Promise is returned by each -ne program, norl collects it and Promise.all() to wait before -E program then pass the result array into -E program via $_
+		 if Promise is returned by each -pe / -ne program, norl prints(-pe) or collects(-ne) it and Promise.all() to wait before -E program. if -ne, then pass the result array into -E program via $_
 
 		### 8. async.js 
 		    
@@ -362,7 +362,9 @@ switch $command
 		    B:1secs (<-after 5secs from 1st line)
 		    C:3secs (<-after 1secs from 2nd line)
 		    
-		returned function from each -ne program will be queued and waits for all callbacks before running -E program.  the function must be async.js style like '(cb)=>cb(null,"OK")'  
+		returned function from each -ne / -pe  program will be queued and waits for all callbacks then prints(-pe) or collects(-ne) before running -E program.if -ne, then pass the result array into -E via $_
+		
+		the function must be async.js style like '(cb)=>cb(null,"OK")' , if you specify -c or -C ,you must return array like  '(cb)=>cb(null,[1,2,3])'
 
 		you can pass parameters via .bind() like this example. by default, execution is sequential. you can control it by -L [<number>] option. try to append -L 2 to the example above to check behavior. 2 is a number of executables in parallel. if you omit <number>, 16 will be used.
 
@@ -493,6 +495,10 @@ switch $command
 				else
 					';return $_;'
 
+			$funcAfterProgram=null
+			if $command in ['pe']
+				$funcAfterProgram=eval("(function($G,$_,$F){#{$afterProgram}})")
+
 			$D "internal final code:#{$afterProgram}"
 
 			$beforeProgram=switch
@@ -562,6 +568,7 @@ switch $command
 					inputFiles:$inputFiles
 					isDebugMode:$isDebugMode
 					exitCallback:$exitCallback
+					funcAfterLineAsync:$funcAfterProgram
 					
 				switch $command
 					when 'r'
@@ -616,6 +623,7 @@ switch $command
 						inputFiles:[file]
 						isDebugMode:$isDebugMode
 						exitCallback:$exitCallback
+						funcAfterLineAsync:$funcAfterProgram
 						
 					switch $command
 						when 'r'
