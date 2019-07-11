@@ -17,6 +17,7 @@ $outputSeparator=null
 $executeMode=null
 $numExecute=1
 $targetDir=null
+$searchModulesInParentDirs=false
 
 $autoSplit=false
 $splitSep=null
@@ -50,15 +51,16 @@ $optUsages=
 	X:"execute $_ as shell command after -e <program> then print result line by line. works with -p. like xargs.if you store null into $_. do nothing for this line"
 	x:"same as X but doesn't print the shell command's result. pass through input line to stdout. stops process if shell command returns non zero error. "
 	L:["number","by default, shell commands will be executed sequencial. with -L option, commands will run parallel. same effect for async.js style function but Promise()."]
+	m:["modules","preload module list for example, -m 'fs request'"]
 	M:"suppress preloading by NORL_MODULES environment variable.default you can preload modules by NORL_MODULES(see example)"
-	m:["modules","adds module list to NORL_MODULES.for example, -m 'fs request'"]
+	S:"search modules according to node.js manner i.e. <currentdir>/node_modules,<parentdir>/node_modules.. then NODE_PATH(default:NODE_PATH only)"
 	r:"Just run -e <program>. stdin and files will be ignored."
 	O:["dir","output directory.if you specify this option,and mutiple files are in arguments. writes output to <dir> with same filenames.see Multi-Output mode section."]
 
 
 try
 	#$opt.setopt 'L::cxXC::m:rMPjJpdh?ne:aF:B:E:'
-	$opt.setopt 'h?de:npaF:B:E:jJPC::cXxL::Mm:rO:'
+	$opt.setopt 'h?de:npaF:B:E:jJPC::cXxL::m:MSrO:'
 catch e
 	switch e.type
 		when 'unknown'
@@ -99,6 +101,8 @@ $opt.getopt (o,p)->
 			$autoPrint=';if(typeof $_!="undefined"&&$_!=null){console.log($_)};'
 		when 'M'
 			$ignoreNorlModules=true
+		when 'S'
+			$searchModulesInParentDirs=true
 		when 'm'
 			$additionalModules=p[0]
 		when 'C'
@@ -311,19 +315,21 @@ switch $command
 		    3
 		    12
 		    
-		you can preload modules by NORL_MODULES environment variable. 
+		you can preload modules by NORL_MODULES environment variable. or -m option.(separated by space with in quote' ')
 
-		tips: set NODE_PATH if you want to use global (npm install -g) module.  or example, $ export NODE_PATH=$(npm root -g))
-		
-		variable name is basically same as module name but '-' and '.' will be '_'.for example, request_promise=require("request-promise")
-		    
 		    $ echo -e "1+2\\n3*4"|norl -m 'mathjs fs' -pe '$_=mathjs.evaluate($_)' 
 		    3
 		    12
 
-		-m option: same as NORL_MODULES. you can specify additional modules by -m option separated by space
-		    
-		by default. only lodash module is pre-loaded into '_' 
+		module are searched in NODE_PATH if you want to use global (npm install -g) module. i.e. $ export NODE_PATH=$(npm root -g))
+
+		node_modules dirs of current/parent dirs(same manner as node.js) are also used if -S specified(high priority than NODE_PATH)
+
+		variable name is basically same as module name but '-' and '.' will be '_'. and @private/ prefix is not used.  i.e.  
+		
+		    request_promise=require("request-promise"); getopt=require("@kssfilo/getopt");
+
+		by default. lodash module is pre-loaded into '_'. and 'path' / 'fs' is available. 
 
 		### 7. Promise
 		    
@@ -503,20 +509,47 @@ switch $command
 
 			$D "modules:#{JSON.stringify $modules}"
 			try
-				for mod in $modules
-					modval=mod.replace(/[-\.]/g,'_')
-					$prg="#{modval}=require('#{mod}')"
-					$D " #{$prg}"
+				for $mod in $modules
+					$modpath=$mod
+					unless $modpath.match(/^@/) or !$modpath.match(path.sep)
+						#path
+						unless  path.isAbsolute $modpath
+							$modpath=path.join process.cwd(),$modpath
+					else
+						#module name
+						if $searchModulesInParentDirs
+							$cwd=process.cwd()
+							$root=path.parse($cwd).root
+							loop
+								$check=path.join $cwd,'node_modules',$mod
+								try
+									$D "checking #{$check}"
+									if fs.statSync($check)?.isDirectory()
+										$modpath=$check
+										$D "found.using abs path"
+										break
+								catch e
+									e=e
+
+								if $cwd==$root
+									$D "couldn't found in parent dirs.using NODE_PATH"
+									break
+
+								$cwd=path.normalize path.join $cwd,'..'
+
+					$modval=path.basename $modpath
+					$modval=$modval.replace(/[-\.]/g,'_')
+					$prg="#{$modval}=require('#{$modpath}')"
+					$D "assign:#{$prg}"
 					eval $prg
 			catch e
-				$E e
+				#$E e
 				throw "Failed to load one of NORL_MOODULES [#{$modules.join(',')}]\n Check NODE_PATH and set like 'export NODE_PATH=$(npm root -g)'"
-
 
 			if !$targetDir
 				$D "Begin Single-in or Multi-in-Single-out mode"
 
-				exitCallback=(e,r)=>
+				$exitCallback=(e,r)=>
 					$D "exit callback:e:#{e}/r:#{r?.code}"
 					if e? or r?.code>0
 						process.exit r.code
@@ -526,7 +559,7 @@ switch $command
 					numExecute:$numExecute
 					inputFiles:$inputFiles
 					isDebugMode:$isDebugMode
-					exitCallback:exitCallback
+					exitCallback:$exitCallback
 					
 				switch $command
 					when 'r'
@@ -560,7 +593,7 @@ switch $command
 					$currentTargetFile=fs.createWriteStream($targetFile)
 					process.stdout.write=$currentTargetFile.write.bind($currentTargetFile)
 					
-					exitCallback=(e,r)=>
+					$exitCallback=(e,r)=>
 						$D "exit callback:e:#{e}/r:#{r?.code}/file:'#{r?.opt.inputFiles[0]}'"
 
 						$D "restore redirection to #{$targetFile} and wait for close"
@@ -580,7 +613,7 @@ switch $command
 						numExecute:$numExecute
 						inputFiles:[file]
 						isDebugMode:$isDebugMode
-						exitCallback:exitCallback
+						exitCallback:$exitCallback
 						
 					switch $command
 						when 'r'

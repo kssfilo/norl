@@ -13,6 +13,13 @@ teardown() {
 	rm -r test.dir
 }
 
+@test "node_modules -S" {
+	cd test.dir
+	r=$(../dist/cli.js -m "math.js" -re 'console.log("OK")' -S -d 2>&1 |grep 'norl:found.using abs path')
+	cd ..
+	test "$r" = 'norl:found.using abs path'
+}
+
 @test "large stream" {
 	test $(dist/cli.js -re 'i=1000000;a="";while(--i){a+="A"};console.log(a)'|dist/cli.js -P |wc -c|norl -Pe '$_=Number($_)') == "1000001"
 }
