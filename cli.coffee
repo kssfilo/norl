@@ -337,7 +337,7 @@ switch $command
 		    $ echo -e "https://www.google.com/robots.txt" |norl -Pe 'return request_promise($_)'
 		    User-agent: ..... 
 		
-		you can return promise object from -e or -E. norl waits result and print it if -P or -J is specified or simply drop it without -P/-J
+		you can return promise object from -B / -e / -E. norl waits result and print it if -P or -J is specified or simply drop it without -P/-J. result of -B function is always dropped.
 
 		    $ cat urls.txt
 		    https://www.google.com/robots.txt
@@ -365,6 +365,8 @@ switch $command
 		returned function from each -ne program will be queued and waits for all callbacks before running -E program.  the function must be async.js style like '(cb)=>cb(null,"OK")'  
 
 		you can pass parameters via .bind() like this example. by default, execution is sequential. you can control it by -L [<number>] option. try to append -L 2 to the example above to check behavior. 2 is a number of executables in parallel. if you omit <number>, 16 will be used.
+
+		-B / -E function also supports async callback. result of -E will be printed if -P or -J is specified. result of -B function is alwasys dropped.
 
 		### 9. Shell Execution
 		    

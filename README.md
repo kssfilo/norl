@@ -130,7 +130,7 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 
 ## Change Log
 
-- 2.4.x: -m './foo/bar' style module path support/-S search node_modules before NODE_PATH/async func at -B suppport(TODO)/automatic => detection(TODO)/automatic print for async func on -pe(TODO)
+- 2.4.x: -m './foo/bar' style module path support/-S search node_modules before NODE_PATH/async func at -B suppport/automatic => detection(TODO)/automatic print for async func on -pe(TODO)
 - 2.3.x: added Multi-Input-Multi-Out mode (-O)
 - 2.2.x: supports file input and multi-input mode.
 - 2.1.x: controling process.exit(n) code by returning number at final function.(-P -J will be cancelled)

@@ -128,100 +128,134 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 	else
 		sep=getSep(sep)
 
-	$asyncList=[]
-	$results=[]
+	##
+	setupStream=()=>
+
+		$asyncList=[]
+		$results=[]
+
+		inputStreams=opt?.inputFiles ? [process.stdin]
+		D opt,"input streams:#{JSON.stringify ((if x==process.stdin then "stdin" else x) for x in inputStreams)}"
+
+		rl=require 'readline'
+		readLines=[]
+
+		# Callbacks
+
+		fromSid=(sid)=>
+			x=inputStreams[sid]
+			if x==process.stdin then "stdin" else x
+
+		streamClosed=(streamId)=>
+			numClosed++
+			numOpening=readLines.length-numClosed
+			D "closed:#{numClosed} / opening:#{numOpening}"
+
+			if numOpening>0
+				return
+
+			D "all streams have been closed"
+			f=($G,results)=>
+				D "executing -E $_=#{JSON.stringify results}"
+				r=null
+				r=endFunc($G,results) if typeof endFunc=='function'
+				finish r,opt
+
+			if $asyncList.length>0
+				D opt,"waiting asyncList: #{$asyncList.length} items / parallel: #{opt?.numExecute ? 1}"
+
+				$async.parallelLimit($asyncList,opt?.numExecute ? 1)
+				.then (rs)=>
+					f($G,rs)
+
+				.catch (e)=>
+					if e.cmd? && e.code?
+						E "stopped(#{e.code}):command( #{e.cmd} )"
+					else
+						E "unknown error:#{JSON.stringify(e)}"
+			else
+				f($G,$results)
+
+		lineCallback=(streamId,$_)->
+			D opt,"stream:#{streamId}:#{fromSid streamId}: -e: $_=\"#{$_}\""
+			r=cb $G,sep,func,$_,streamId
+
+			if typeof r?.then=='function'
+				D opt,"-e returns Promise.add it to queue."
+				$asyncList.push ((cb)->
+					this.then (ret)->cb null,ret
+						.catch (e)->cb  e,null
+				).bind(r)
+
+			else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,object). parameters can be passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
+				D opt,"-e returns Async function .add it to queue."
+				$asyncList.push r
+
+			else
+				D opt,"-e returns #{(JSON.stringify r) ? 'null'}"
+				$results.push r
+
+		closeCallback=(streamId)->
+			D opt,"stream:#{streamId}:#{fromSid streamId}: closed"
+			streamClosed streamId
+
+		##
+
+		try
+			fs.statSync(inputStream) for inputStream in inputStreams when typeof inputStream is 'string'
+
+			streams=for inputStream in inputStreams
+				if typeof inputStream == 'object'
+					inputStream
+				else
+					fs.createReadStream inputStream
+
+
+			readLines=(rl.createInterface {input:inputStream} for inputStream in streams)
+		catch e
+			#E e
+			E "failed to open #{e.path ? 'stream'}"
+			return exitProcess opt,1
+
+		numClosed=0
+		streamId=0
+		for readLine in readLines
+			readLine.on 'line',lineCallback.bind null,streamId
+			readLine.on 'close',closeCallback.bind null,streamId
+			streamId++
+	## 
+
+	D opt,"options:"+JSON.stringify opt
 	$G={}
 
-	inputStreams=opt?.inputFiles ? [process.stdin]
-	D opt,"options:"+JSON.stringify opt
-	D opt,"input streams:#{JSON.stringify ((if x==process.stdin then "stdin" else x) for x in inputStreams)}"
-
-	fromSid=(sid)=>
-		s=inputStreams[sid]
-		if x==process.stdin then "stdin" else x for x in inputStream
-
-	rl=require 'readline'
-	readLines=[]
-
-	try
-		fs.statSync(inputStream) for inputStream in inputStreams when typeof inputStream is 'string'
-
-		streams=for inputStream in inputStreams
-			if typeof inputStream == 'object'
-				inputStream
-			else
-				fs.createReadStream inputStream
-
-
-		readLines=(rl.createInterface {input:inputStream} for inputStream in streams)
-	catch e
-		#E e
-		E "failed to open #{e.path ? 'stream'}"
-		return exitProcess opt,1
-
-	numClosed=0
-	streamClosed=(streamId)=>
-		numClosed++
-		numOpening=readLines.length-numClosed
-		D "closed:#{numClosed} / opening:#{numOpening}"
-
-		if numOpening>0
-			return
-
-		D "all streams have been closed"
-		f=($G,results)=>
-			D "executing -E $_=#{JSON.stringify results}"
-			r=null
-			r=endFunc($G,results) if typeof endFunc=='function'
-			finish r,opt
-
-		if $asyncList.length>0
-			D opt,"waiting asyncList: #{$asyncList.length} items / parallel: #{opt?.numExecute ? 1}"
-
-			$async.parallelLimit($asyncList,opt?.numExecute ? 1)
-			.then (rs)=>
-				f($G,rs)
-
-			.catch (e)=>
-				if e.cmd? && e.code?
-					E "stopped(#{e.code}):command( #{e.cmd} )"
-				else
-					E "unknown error:#{JSON.stringify(e)}"
-		else
-			f($G,$results)
-
-	lineCallback=(streamId,$_)->
-		D opt,"stream:#{streamId}:#{fromSid streamId}: -e: $_=\"#{$_}\""
-		r=cb $G,sep,func,$_,streamId
+	if typeof beginFunc=='function'
+		D opt,"executing:-B program"
+		r=null
+		r=beginFunc $G if typeof beginFunc=='function'
 
 		if typeof r?.then=='function'
-			D opt,"-e returns Promise.add it to queue."
-			$asyncList.push ((cb)->
-				this.then (ret)->cb null,ret
-					.catch (e)->cb  e,null
-			).bind(r)
-
-		else if typeof r == 'function' ## must be function(callback){..}. callback is async.js style like  callback(error,object). parameters can be passed via bind(null,arg1,arg2...).  for example 'return( ((cb)=>cb(null,this)).bind(null,$_) )'
-			D opt,"-e returns Async function .add it to queue."
-			$asyncList.push r
-
+			D opt,"-B returns promsie,waiting for complete"
+			r.then (result)=>
+				D opt,"-B promise complete with:#{JSON.stringify result}"
+				setupStream()
+			.catch (e)=>
+				E "-B promise throws error:#{e.toString()}"
+				exitProcess opt,1
+		else if typeof r == 'function' ## function(callback){..}.
+			D opt,"-B Async function,waiting for complete"
+			r (e,result)=>
+				if e?
+					E "-B async function returns error:#{e.toString()}"
+					exitProcess opt,1
+				else
+					D opt,"-B async function complete with:#{JSON.stringify result}"
+					setupStream()
 		else
-			D opt,"-e returns #{(JSON.stringify r) ? 'null'}"
-			$results.push r
+			D opt,"-B returns :#{JSON.stringify r}"
+			setupStream()
+	else
+		setupStream()
 
-	closeCallback=(streamId)->
-		D opt,"stream:#{streamId}:#{fromSid streamId}: closed"
-		streamClosed streamId
-
-
-	streamId=0
-	for readLine in readLines
-		readLine.on 'line',lineCallback.bind null,streamId
-		readLine.on 'close',closeCallback.bind null,streamId
-		streamId++
-
-	D opt,"executing:-B program"
-	beginFunc $G if typeof beginFunc=='function'
 
 exports.ne=(sep,func,beginFunc,endFunc,opt)=>
 	lineExec sep,func,beginFunc,endFunc,opt,execfunc
