@@ -36,7 +36,7 @@ pack:$(ALL) test.passed|$(DESTDIR)
 test:test.passed
 
 clean:
-	-rm -r $(DESTDIR) node_modules *.passed
+	-rm -r $(DESTDIR) node_modules *.passed 2>/dev/null;true
 
 help:
 	@echo "Targets:$(COMMANDS)"
@@ -59,7 +59,7 @@ endif
 	chmod +x $@
 
 $(DESTDIR)/%:% $(TARGETS) Makefile|$(SDK) $(DESTDIR)
-	cat $<|$(TOOLS)/partpipe -c VERSION@$(VERSION) NAME@$(NAME) "DESCRIPTION@$(DESCRIPTION)" 'KEYWORDS@$(PKGKEYWORDS)'  >$@
+	cat $<|$(TOOLS)/partpipe -c VERSION=$(VERSION) NAME=$(NAME) "DESCRIPTION=$(DESCRIPTION)" 'KEYWORDS=$(PKGKEYWORDS)'  >$@
 
 $(SDK):package.json
 	npm install
