@@ -3,7 +3,7 @@
 T=console.log
 E=console.error
 D=(opt,str)=>
-	E "norl:"+str if opt.isDebugMode
+	E "norl:"+str if opt?.isDebugMode
 
 $async=require("async")
 fs=require 'fs'

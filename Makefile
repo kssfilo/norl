@@ -1,7 +1,7 @@
 .SUFFIXES:
 
 NAME=norl
-VERSION=2.3.5
+VERSION=2.4.0
 DESCRIPTION= one-liners node.js, helps to write one line stdin filter program by node.js Javascript like perl/ruby.+JSON/CSV/Promise/Async/MultiStream feature(CLI tool/module)
 KEYWORDS=one-liner oneliner perl ruby sed awk shell CLI command-line one line stdin JSON CSV async async.js Promise filter command join multiple sort
 
