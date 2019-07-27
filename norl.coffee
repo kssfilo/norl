@@ -80,6 +80,11 @@ finish=(r,opt)=>
 			else
 				eval(opt.finalEval) if opt?.finalEval?
 				return exitProcess opt,0
+	else if typeof(r)=='string'
+		D opt,"result is string '#{r}'. copy it to $_"
+		$_=r
+		eval(opt.finalEval) if opt?.finalEval?
+		return exitProcess opt,0
 	else
 		D opt,"result: #{if r? then JSON.stringify r else 'null'}"
 		eval(opt.finalEval) if opt?.finalEval?

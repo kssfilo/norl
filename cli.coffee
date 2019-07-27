@@ -112,8 +112,10 @@ $opt.getopt (o,p)->
 		when 'c'
 			$outputSeparator?=','
 		when 'x'
+			$command='pe'
 			$executeMode='result'
 		when 'X'
+			$command='pe'
 			$executeMode='passthrough'
 		when 'O'
 			$targetDir=p[0]
@@ -396,7 +398,7 @@ switch $command
 		
 		tips: all data(code/stdin/stdout/cmd) from each shell command will be collected and passed to -E <program> via $_. appending -E "console.error(JSON.stringify($_,null,2))" is useful for debugging.
 
-		### 10. Result Code
+		### 10. Result Code / Return
 
 		    $ if cat README.md|norl -ae 'return $F.length<15?0:1';then echo "README.md is too short";fi
 		    README.md is too short  (if number of lines of README.md are under 15)
@@ -449,6 +451,13 @@ switch $command
 		    #can be
 		    $ echo "Hello" | norl -e '$P($_);$E("warning")'
 
+		if you return a string from the program. it will be copied to $_ automatically. 
+		special abbriviation function '=>..' is short hand for '($_,$F,$S)=>..' . you can make the program shorter.
+
+		    $ echo "Hello" | norl -pe  '=>$_+" World"'
+			Hello World
+
+
 		"""
 	else
 		try
@@ -464,7 +473,8 @@ switch $command
 
 			#$lineName=if $autoSplit and $splitSep !=JSON then "$_,$F" else '$_'
 
-			$D "processing abbriviations.."   #s/...../..../gm,  x=>
+			$D "processing abbriviations.."
+			#s/...../..../gm,  
 			
 			#jshint evil:true
 			$beginFunc=null
@@ -475,7 +485,10 @@ switch $command
 				
 			$endFunc=null
 			if $endProgram?
-				$prog="(function($G,$_){#{$endProgram}#{$autoPrint ? ''}})"
+				if $endProgram.match(/^=>/)
+					$prog="(($G,$_)#{$endProgram})"   ##special abbriviations -pe '=>"hello"+$_'
+				else
+					$prog="(function($G,$_){#{$endProgram}#{$autoPrint ? ''}})"
 				$D "-E code: #{$prog}"
 				$endFunc=eval $prog
 			else if $autoPrint
@@ -511,7 +524,10 @@ switch $command
 			$D "internal first code:#{$beforeProgram}"
 			
 			$norl=require('./norl')
-			$prog="(function($G,$_,$F,$S){#{$beforeProgram}#{$program}#{$afterProgram}})"
+			if $program.match(/^=>/) and $beforeProgram==''
+				$prog="(($G,$_,$F,$S)#{$program})"   ##special abbriviations -pe '=>"hello"+$_'
+			else
+				$prog="(function($G,$_,$F,$S){#{$beforeProgram}#{$program}#{$afterProgram}})"
 			$D "-e code: #{$prog}"
 			$func=eval($prog)
 

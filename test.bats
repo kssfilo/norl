@@ -72,6 +72,14 @@ teardown() {
 	test "$(echo Hello World|dist/cli.js -pe '$_=$_.replace(/World/,"Earth")')" == "Hello Earth"
 }
 
+@test "-pe =>" {
+	test "$(echo Hello|dist/cli.js -pe '=>$_+" Earth"')" == "Hello Earth"
+}
+
+@test "-E =>" {
+	test "$(echo Hello|dist/cli.js -ne '=>$_+" Ear"' -PE '=>$_[0]+"th"' )" == "Hello Earth"
+}
+
 @test "-pe with null" {
 	test "$(echo -e "Hello\nWorld"|dist/cli.js -pe 'if($_=="Hello")$_=null')" == "World"
 }
