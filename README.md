@@ -130,6 +130,7 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 
 ## Change Log
 
+- 2.5.x: -pe 'return "FOO"' prints "FOO" instead of $_.
 - 2.4.x: -m './foo/bar' style module path support/-S search node\_modules before NODE\_PATH/async func at -B suppport/automatic => detection/automatic print for async func on -pe
 - 2.3.x: added Multi-Input-Multi-Out mode (-O)
 - 2.2.x: supports file input and multi-input mode.

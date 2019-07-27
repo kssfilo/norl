@@ -463,6 +463,8 @@ switch $command
 			$D "autosplit:#{if $firstArg!="" then 'enabled' else 'disabled'}"
 
 			#$lineName=if $autoSplit and $splitSep !=JSON then "$_,$F" else '$_'
+
+			$D "processing abbriviations.."   #s/...../..../gm,  x=>
 			
 			#jshint evil:true
 			$beginFunc=null
@@ -489,7 +491,7 @@ switch $command
 				when $command=='pe' and $executeMode=='passthrough'
 					";if(typeof $_!='undefined'&&typeof $_=='string'){return (function(cmd,$_originalLine,cb){require('child_process').exec(cmd,function(e,so,se){if(!e){console.log($_originalLine);};cb(null,{code:e?e.code:0,cmd:cmd,stdout:so,stderr:se})});}).bind(null,$_,$_originalLine);};"
 				when $command=='pe' and !$outputSeparator? and !$executeMode
-					";if(typeof $_!='undefined'&&$_!=null){console.log($_)};"
+					";if(typeof $_!='undefined'&&$_!=null){console.log($_);return null};"
 				when $autoPrint and $command in ['e','r']
 					$autoPrint
 				else
@@ -568,7 +570,7 @@ switch $command
 					inputFiles:$inputFiles
 					isDebugMode:$isDebugMode
 					exitCallback:$exitCallback
-					funcAfterLineAsync:$funcAfterProgram
+					funcAfterLine:$funcAfterProgram
 					
 				switch $command
 					when 'r'
@@ -623,7 +625,7 @@ switch $command
 						inputFiles:[file]
 						isDebugMode:$isDebugMode
 						exitCallback:$exitCallback
-						funcAfterLineAsync:$funcAfterProgram
+						funcAfterLine:$funcAfterProgram
 						
 					switch $command
 						when 'r'

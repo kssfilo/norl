@@ -166,9 +166,9 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 
 				$async.parallelLimit($asyncList,opt?.numExecute ? 1)
 				.then (rs)=>
-					if opt.funcAfterLineAsync && rs?.length>0
+					if opt.funcAfterLine && rs?.length>0
 						D opt,"applying after program to async results #{JSON.stringify rs}"
-						opt.funcAfterLineAsync($G,r,r) for r in rs
+						opt.funcAfterLine($G,r,r) for r in rs
 
 					f($G,rs)
 
@@ -195,6 +195,10 @@ lineExec=(sep,func,beginFunc,endFunc,opt,cb)=>
 				D opt,"-e returns Async function .add it to queue."
 				$asyncList.push r
 
+			else if typeof(r) == 'string' and typeof(opt.funcAfterLine)=='function'
+				D opt,"-e returns #{r},pass it to opt.funcAfterLine"
+				opt.funcAfterLine($G,r,r)
+				$results.push r
 			else
 				D opt,"-e returns #{(JSON.stringify r) ? 'null'}"
 				$results.push r
