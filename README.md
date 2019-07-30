@@ -46,7 +46,7 @@ npm install -g norl
 $ cat README.md | wc -l | sed 's/^ *//'
 #wc -l prints unnecessary white space
 
-$ cat README.md | norl -aPe '$_=$F.length'
+$ cat README.md | norl -aPe '=>$F.length'
 #norl version
 ```
 
@@ -130,7 +130,9 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 
 ## Change Log
 
-- 2.5.x: -pe 'return "FOO"' prints "FOO" instead of $_. adds special abbriviation  '=>...'
+- 3.0.x: adds $s / $m shorthands for $_.replace()/ $_.match()
+- 3.0.x: -pe 'return "FOO"' prints "FOO" instead of $_. adds special abbriviation  '=>...'
+- 3.0.x: Breaking change: returning Number will print out the number instead of return code. if you return code like test command, use Boolean.
 - 2.4.x: -m './foo/bar' style module path support/-S search node\_modules before NODE\_PATH/async func at -B suppport/automatic => detection/automatic print for async func on -pe
 - 2.3.x: added Multi-Input-Multi-Out mode (-O)
 - 2.2.x: supports file input and multi-input mode.

@@ -31,7 +31,7 @@ $E=console.error
 $D=(str)=>
 	$E "norl:"+str if $isDebugMode
 
-
+$utilitiesProgram="$m=((regex)=>$_.match(regex)||[]);$s=((regex,replacement)=>$_.replace(regex,replacement));"
 
 $optUsages=
 	h:"help"
@@ -398,12 +398,12 @@ switch $command
 		
 		tips: all data(code/stdin/stdout/cmd) from each shell command will be collected and passed to -E <program> via $_. appending -E "console.error(JSON.stringify($_,null,2))" is useful for debugging.
 
-		### 10. Result Code / Return
+		### 10. Result Code
 
-		    $ if cat README.md|norl -ae 'return $F.length<15?0:1';then echo "README.md is too short";fi
+		    $ if cat README.md|norl -ae 'return $F.length<15?false:true';then echo "README.md is too short";fi
 		    README.md is too short  (if number of lines of README.md are under 15)
 
-		if you return a number at the final (-e or -E) program. the number will be norl's shell result code ($?). You can use norl like 'test' command inside bash if.
+		if you return a boolean(true/false) at the final (-e or -E) program. the number will be norl's shell result code ($?),true=0/false=1. You can use norl like 'test' command inside bash if.
 
 		### 11. Multi-Input Mode
 		    
@@ -441,23 +441,38 @@ switch $command
 
 		unlike Multi-Input(single out) mode, you can't join each file. but MIMO mode is very useful when embed something to template file like example above.
 
-		### 13. More Tips
+		### 13. => function abbriviation
+		
+		if you return a string from the program. it will be copied to $_ automatically. 
+		special abbriviation function '=>..' is short hand for '($_,$F,$S)=>..' . you can make the program shorter.
 
-		all variable names which start from $.. (execept $_ /$F / $S) and _(for lodash) are preserved. but $P and $E are predefined to console.log and console.error
+			$ echo "Hello" | norl -pe 'return $_+"World"'
+			#can be
+		    $ echo "Hello" | norl -pe  '=>$_+" World"'
+			Hello World
 
+		### 14. special variables which starts from $..
+
+		all variable names which start from $.. (except $_ / $F / $S) and _(for lodash) are preserved.but you can use some of preserved functions. 
+
+		$P and $E are predefined to console.log and console.error
 		this means you can rewrite console.log/console.error by $P / $E  e.g.
 		
 		    $ echo "Hello" | norl -e 'console.log($_);console.error("warning")'
 		    #can be
 		    $ echo "Hello" | norl -e '$P($_);$E("warning")'
 
-		if you return a string from the program. it will be copied to $_ automatically. 
-		special abbriviation function '=>..' is short hand for '($_,$F,$S)=>..' . you can make the program shorter.
+		additinally, $s / $m (lower case) are useful to write String.replace()/String.match() shorter.(only works in -e not for -B -E)
+		
+		    $ echo "Hello World" | norl -pe '=>$_.replace(/world/i,"Norl")'
+			#can be
+		    $ echo "Hello World" | norl -pe '=>$s(/world/i,"Norl")'
+			Hello Norl  #definition:$s=(regex,replacement)=>$_.replace(regex,replacement)
 
-		    $ echo "Hello" | norl -pe  '=>$_+" World"'
-			Hello World
-
-
+		    $ echo "Hello World" | norl -pe '=>($_.match(/Hello (W.+)/) || [])[1]'
+			#can be
+		    $ echo "Hello World" | norl -pe '=>$m(/Hello (W.+1)/)[1]'
+			World       #definition:$m=(regex)=>($_.match(regex)||[])
 		"""
 	else
 		try
@@ -473,8 +488,14 @@ switch $command
 
 			#$lineName=if $autoSplit and $splitSep !=JSON then "$_,$F" else '$_'
 
-			$D "processing abbriviations.."
-			#s/...../..../gm,  
+			stripAllowProgram=(program)=>
+				if program.match(/^=>/)
+					program=program.replace(/^=>/,"")
+					unless program.match(/^{/)
+						program="return "+program+";"
+					else
+						program=program.replace(/^ *{(.+)}[; ]*$/,"$1")
+				program
 			
 			#jshint evil:true
 			$beginFunc=null
@@ -485,10 +506,9 @@ switch $command
 				
 			$endFunc=null
 			if $endProgram?
-				if $endProgram.match(/^=>/)
-					$prog="(($G,$_)#{$endProgram})"   ##special abbriviations -pe '=>"hello"+$_'
-				else
-					$prog="(function($G,$_){#{$endProgram}#{$autoPrint ? ''}})"
+				$endProgram=stripAllowProgram($endProgram) #special abbriviations -E '=>"hello"+$_'
+
+				$prog="(function($G,$_){#{$endProgram}#{$autoPrint ? ''}})"
 				$D "-E code: #{$prog}"
 				$endFunc=eval $prog
 			else if $autoPrint
@@ -521,13 +541,14 @@ switch $command
 					"$_originalLine=$_;"
 				else
 					''
+			$beforeProgram+=$utilitiesProgram
 			$D "internal first code:#{$beforeProgram}"
 			
 			$norl=require('./norl')
-			if $program.match(/^=>/) and $beforeProgram==''
-				$prog="(($G,$_,$F,$S)#{$program})"   ##special abbriviations -pe '=>"hello"+$_'
-			else
-				$prog="(function($G,$_,$F,$S){#{$beforeProgram}#{$program}#{$afterProgram}})"
+
+			$program=stripAllowProgram($program) #special abbriviations -E '=>"hello"+$_'
+			$prog="(function($G,$_,$F,$S){#{$beforeProgram}#{$program}#{$afterProgram}})"
+
 			$D "-e code: #{$prog}"
 			$func=eval($prog)
 

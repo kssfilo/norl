@@ -9,14 +9,15 @@ $async=require("async")
 fs=require 'fs'
 
 exitProcess=(opt,r)=>
-	D opt,"exitprocess:#{r}"
+	D opt,"exitprocess:#{r}(#{typeof(r)})"
+	exitCode=if typeof(r)=='boolean' and r == false then 1 else 0
 	if opt?.exitCallback?
 		D opt,"calling exitCallback:"
-		opt.exitCallback (if r==0 then null else r),{code:r,opt:opt}
+		opt.exitCallback (if exitCode == 0 then null else exitCode),{code:exitCode,opt:opt}
 	else
 		D opt,"there are no exitCallback.exit process."
-		process.exit r
-	r
+		process.exit exitCode
+	exitCode
 
 getSepRegex=(regOrStr)=>
 	m=regOrStr.match /^\/(.+)\/([im]?)$/
@@ -80,15 +81,15 @@ finish=(r,opt)=>
 			else
 				eval(opt.finalEval) if opt?.finalEval?
 				return exitProcess opt,0
-	else if typeof(r)=='string'
-		D opt,"result is string '#{r}'. copy it to $_"
+	else if typeof(r) in ['string','number']
+		D opt,"result is #{typeof(r)} '#{r}'. copy it to $_"
 		$_=r
 		eval(opt.finalEval) if opt?.finalEval?
 		return exitProcess opt,0
 	else
-		D opt,"result: #{if r? then JSON.stringify r else 'null'}"
+		D opt,"result(#{typeof(r)}): #{if r? then JSON.stringify r else 'null'}"
 		eval(opt.finalEval) if opt?.finalEval?
-		return exitProcess opt,(if (typeof r == 'number') then r else 0)
+		return exitProcess opt,r
 
 exports.r=(func,opt)=>
 	$G={}

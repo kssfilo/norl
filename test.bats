@@ -13,6 +13,26 @@ teardown() {
 	rm -r test.dir
 }
 
+@test "result code false" {
+	run dist/cli.js -re 'return false'
+	test "$status" -eq 1
+}
+
+@test "result code true" {
+	run dist/cli.js -re 'return true'
+	test "$status" -eq 0
+}
+
+@test "result code neutral" {
+	run dist/cli.js -re 'console.log("Hello")'
+	test "$status" -eq 0
+}
+
+@test "returning number" {
+	run dist/cli.js -rPe 'return 123'
+	test "$output" = "123"
+}
+
 @test "-pe async" {
 	r=$(echo -e "hoge\naaaa" | dist/cli.js -pe 'return (cb)=>setTimeout(()=>cb(null,$_+"HO"),100)')
 	test "$(echo $r)" == "hogeHO aaaaHO"
@@ -74,6 +94,19 @@ teardown() {
 
 @test "-pe =>" {
 	test "$(echo Hello|dist/cli.js -pe '=>$_+" Earth"')" == "Hello Earth"
+}
+
+@test "-pe => \$m" {
+	test "$(echo -e "Hello World\nGoognight World" | dist/cli.js -pe '=>$m(/H.+ (W.+)/)[0]')" == "Hello World"
+}
+
+@test "-pe => \$s" {
+	r=$(echo -e "Hello World" | dist/cli.js -pe '=>$s(/World/,"Norl")')
+	test "$r" == "Hello Norl"
+}
+
+@test "-pe =>{}" {
+	test "$(echo -e "Hello World\nGoognight World" | dist/cli.js -pe '=>{return $m(/H.+ (W.+)/)[0]}')" == "Hello World"
 }
 
 @test "-E =>" {

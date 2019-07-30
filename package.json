@@ -7,16 +7,14 @@
   },
   "@PARTPIPE@_@PARTPIPE@version": "@PARTPIPE@VERSION@PARTPIPE@",
   "dependencies": {
-    "@kssfilo/getopt": "^0.3.0",
-    "async": "3.1.0",
-    "lodash": "^4.17.14",
-    "math.js": "^1.1.43",
-    "pg": "^7.11.0"
+    "@kssfilo/getopt": "~0.3.0",
+    "async": "~3.1.0",
+    "lodash": "~4.17.14"
   },
   "devDependencies": {
     "coffee-jshint": "1.1.1",
     "coffeescript": "2.4.1",
-    "mathjs": "6.0.3",
+    "math.js": "1.1.43",
     "partpipe": "1.0.0",
     "request": "2.88.0",
     "request-promise": "4.2.4"
