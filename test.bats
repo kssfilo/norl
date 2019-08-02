@@ -13,6 +13,10 @@ teardown() {
 	rm -r test.dir
 }
 
+@test '$e' {
+	test $(A=Hello dist/cli.js -Pre '=>$e("A")') = "Hello"
+}
+
 @test "result code false" {
 	run dist/cli.js -re 'return false'
 	test "$status" -eq 1

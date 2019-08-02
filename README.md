@@ -88,6 +88,18 @@ norl,010-342-234,moon
 partpipe,010-122-444,mars
 ```
 
+### Adds users to a Twitter list from CSV (with twitter-tool)
+
+```
+$ npm i -g twitter-tool; twitter -i
+$ cat list.csv
+foo,12345
+bar,13432
+
+$ TWITTER_USER=kssfilo LST=list2 CSVFLD=0 norl -anxe $'=>`twitter lists/members/create -o s:${$e("LST")},s_n:${$F[$e("CSVFLD")]},o_s_n:${$e("TWITTER_USER")} `' list.csv
+# user @foo and @bar has been added to list2 of @kssfilo
+```
+
 @PARTPIPE@|dist/cli.js -h| perl -pe 'if(!m/^    /){s/_/\\_/g}'
 
 You can see detail usage on npmjs.com or norl -h 
@@ -130,6 +142,7 @@ echo -e "Hello\nWorld"| node -e 'require("norl").ne(($G,$_)=>{$G.count+=$_.lengt
 
 ## Change Log
 
+- 3.1.x: adds $e(name) (shorthand for process.env[name]) / able to use => with -xpe -Xpe like =>'echo hello'
 - 3.0.x: adds $s / $m shorthands for $_.replace()/ $_.match()
 - 3.0.x: -pe 'return "FOO"' prints "FOO" instead of $_. adds special abbriviation  '=>...'
 - 3.0.x: Breaking change: returning Number will print out the number instead of return code. if you return code like test command, use Boolean.

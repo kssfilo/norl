@@ -30,6 +30,7 @@ $P=console.log
 $E=console.error
 $D=(str)=>
 	$E "norl:"+str if $isDebugMode
+$e=(env)=>process.env[env]
 
 $utilitiesProgram="$m=((regex)=>$_.match(regex)||[]);$s=((regex,replacement)=>$_.replace(regex,replacement));"
 
@@ -473,6 +474,8 @@ switch $command
 			#can be
 		    $ echo "Hello World" | norl -pe '=>$m(/Hello (W.+1)/)[1]'
 			World       #definition:$m=(regex)=>($_.match(regex)||[])
+
+		$e is shorthand for process.env. definition is $e=(name)=>process.env[env]
 		"""
 	else
 		try
@@ -488,11 +491,14 @@ switch $command
 
 			#$lineName=if $autoSplit and $splitSep !=JSON then "$_,$F" else '$_'
 
-			stripAllowProgram=(program)=>
+			stripAllowProgram=(program,convertSimpleEvaluationToAssignment=false)=>
 				if program.match(/^=>/)
 					program=program.replace(/^=>/,"")
 					unless program.match(/^{/)
-						program="return "+program+";"
+						if convertSimpleEvaluationToAssignment
+							program="$_=("+program+");"
+						else
+							program="return "+program+";"
 					else
 						program=program.replace(/^ *{(.+)}[; ]*$/,"$1")
 				program
@@ -546,7 +552,7 @@ switch $command
 			
 			$norl=require('./norl')
 
-			$program=stripAllowProgram($program) #special abbriviations -E '=>"hello"+$_'
+			$program=stripAllowProgram($program,$executeMode?) #special abbriviations -E '=>"hello"+$_'
 			$prog="(function($G,$_,$F,$S){#{$beforeProgram}#{$program}#{$afterProgram}})"
 
 			$D "-e code: #{$prog}"
